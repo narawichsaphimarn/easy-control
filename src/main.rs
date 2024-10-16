@@ -1,3 +1,4 @@
+pub mod ui;
 fn main() {
-    println!("Hello World!");
+    ui::navigate::app::main_app();
 }
