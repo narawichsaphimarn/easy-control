@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { ButtonProps } from "@components/button/struct";
+import { ButtonProps } from "../struct";
 
 interface ButtonIconProps extends ButtonProps {
   icon: ReactNode;

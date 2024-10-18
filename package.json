@@ -12,8 +12,11 @@
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-shell": "^2",
+    "cursor-control-app": "file:",
+    "konva": "^9.3.15",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-konva": "^18.2.10",
     "react-router-dom": "^6.27.0",
     "yarn": "^1.22.22"
   },
@@ -22,7 +25,6 @@
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.2.1",
-    "tailwindcss": "^3.4.14",
     "typescript": "^5.2.2",
     "vite": "^5.3.1"
   }

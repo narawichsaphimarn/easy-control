@@ -1,5 +1,5 @@
 import React from "react";
-import { ButtonProps } from "@components/button/struct";
+import { ButtonProps } from "../struct";
 
 export const ButtonSubmit: React.FC<ButtonProps> = (props: ButtonProps) => {
   return (

@@ -1,4 +1,3 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ButtonSubmit } from "../../components/button/submit";
 import { Pages } from "../../constant";
