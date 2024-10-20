@@ -1,4 +1,5 @@
 export interface ShapeBody {
+  id: string;
   x: number;
   y: number;
   width: number;
@@ -15,4 +16,6 @@ export interface ShapeBody {
   scaleY?: number;
   onDragStart?: (any?: any) => void;
   onDragEnd?: (any?: any) => void;
+  onDragMove?: (any?: any) => void;
+  stroke?: string;
 }
