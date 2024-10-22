@@ -1,0 +1,10 @@
+[package]
+name = "share-mouse"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winapi = { version = "0.3", features = ["winuser"] }
+log = "0.4"
+env_logger = "0.10"
+dotenvy = "0.15"
