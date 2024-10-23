@@ -7,7 +7,7 @@ use winapi::{
     },
 };
 
-use crate::shared::types::screen_type::Screen;
+use crate::shared::{constants::screen_constant::PositionAtEdge, types::screen_type::Screen};
 
 pub fn get_cursor_point() -> POINT {
     let mut cursor_pos = POINT { x: 0, y: 0 };
@@ -35,26 +35,27 @@ pub fn unlock_cursor() {
     }
 }
 
-pub fn check_position_at_edge(cursor_pos: POINT, screen: Screen) -> Option<String> {
+pub fn check_position_at_edge(cursor_pos: POINT, screen: Screen) -> Option<PositionAtEdge> {
     if cursor_pos.x <= 0 {
-        return Some("left".to_string());
+        return Some(PositionAtEdge::Left);
     } else if cursor_pos.x >= screen.width - 1 {
-        return Some("right".to_string());
+        return Some(PositionAtEdge::Right);
     } else if cursor_pos.y <= 0 {
-        return Some("top".to_string());
+        return Some(PositionAtEdge::Top);
     } else if cursor_pos.y >= screen.height - 1 {
-        return Some("bottom".to_string());
+        return Some(PositionAtEdge::Bottom);
     } else {
-        return Some("else".to_string());
+        return None;
     }
 }
 
 unsafe extern "system" fn mouse_hook_proc(n_code: i32, w_param: usize, l_param: isize) -> isize {
     if n_code >= 0 && w_param == WM_MOUSEMOVE as usize {
         let mouse_data = *(l_param as *const winapi::shared::windef::POINT);
-        println!(
+        log::debug!(
             "Mouse moved to position: ({}, {})",
-            mouse_data.x, mouse_data.y
+            mouse_data.x,
+            mouse_data.y
         );
     }
     CallNextHookEx(ptr::null_mut(), n_code, w_param, l_param)

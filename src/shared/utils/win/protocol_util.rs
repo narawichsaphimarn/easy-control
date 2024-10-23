@@ -1,4 +1,7 @@
-use crate::shared::utils::general::convert::byte_convert::convert_option_byte_to_string;
+use crate::shared::{
+    constants::protocol_constant::InterfaceWinDesc,
+    utils::general::convert::byte_convert::convert_option_byte_to_string,
+};
 use ipconfig;
 
 pub fn get_addrs() -> (Vec<String>, Vec<String>) {
@@ -9,13 +12,17 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
     for adapter in adapters {
         for ip in adapter.ip_addresses() {
             if ip.is_ipv4() {
-                if adapter.description().contains("Wireless LAN")
+                if adapter
+                    .description()
+                    .contains(&InterfaceWinDesc::Wireless.to_string())
                     && adapter.if_type() == ipconfig::IfType::Ieee80211
                 {
                     log::debug!("Wi-Fi adapter {} and IPv4 {}", adapter.description(), ip);
                     wlan_addrs.push(ip.to_string());
                 } else if adapter.if_type() == ipconfig::IfType::EthernetCsmacd
-                    && adapter.description().contains("Ethernet")
+                    && adapter
+                        .description()
+                        .contains(&InterfaceWinDesc::Ethernet.to_string())
                 {
                     log::debug!("LAN adapter {} and IPv4 {}", adapter.description(), ip);
                     lan_addrs.push(ip.to_string());
