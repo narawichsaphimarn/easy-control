@@ -1,5 +1,6 @@
-use crate::shared::types::mouse_type::Screen;
 use winapi::um::winuser::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
+
+use crate::shared::types::screen_type::Screen;
 
 pub fn get_screen_metrics() -> Screen {
     unsafe {

@@ -1,4 +1,3 @@
-use crate::shared::types::mouse_type::Screen;
 use std::ptr;
 use winapi::{
     shared::windef::{POINT, RECT},
@@ -7,6 +6,8 @@ use winapi::{
         ShowCursor, TranslateMessage, MSG, WH_MOUSE_LL, WM_MOUSEMOVE,
     },
 };
+
+use crate::shared::types::screen_type::Screen;
 
 pub fn get_cursor_point() -> POINT {
     let mut cursor_pos = POINT { x: 0, y: 0 };

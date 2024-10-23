@@ -1,3 +1,4 @@
+use crate::shared::utils::general::convert::byte_convert::convert_option_byte_to_string;
 use ipconfig;
 
 pub fn get_addrs() -> (Vec<String>, Vec<String>) {
@@ -24,4 +25,17 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
     }
 
     (wlan_addrs, lan_addrs)
+}
+
+pub fn get_mac_addr(ip_addr: String) -> String {
+    let adapters = ipconfig::get_adapters().unwrap();
+    let mut mac: String = String::new();
+    for adapter in adapters {
+        for ip in adapter.ip_addresses() {
+            if ip.is_ipv4() && ip.to_string().eq(&ip_addr) {
+                mac = convert_option_byte_to_string(adapter.physical_address(), &"-".to_string());
+            }
+        }
+    }
+    mac
 }
