@@ -1,31 +1,39 @@
-use crate::shared::utils::{general::protocol_util::scan_network, win::protocol_util::get_addrs};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Json},
+};
 
-pub async fn get_machine() {
-    let ips = get_addrs();
-    let select_ip = select_ip(ips);
-    log::debug!("Select ip : {:?}", select_ip);
-    let ip = slic_ip(select_ip);
-    let ips_active = scan_network(&ip);
-    log::debug!("IPS Active : {:?}", ips_active);
-}
+use crate::{
+    application::services::protocol_service::ProtocolServiceApplication,
+    shared::{
+        constants::rest_status_constant::ResponseMessage,
+        types::{response_type::ResponseStruct, system_type::System},
+        utils::general::mapping::response_mapping::map_response,
+    },
+};
 
-fn select_ip(ips: (Vec<String>, Vec<String>)) -> String {
-    if ips.1.len() > 0 {
-        return ips.1.get(0).cloned().unwrap();
-    } else {
-        return ips.0.get(0).cloned().unwrap();
+pub async fn get_machine() -> impl IntoResponse {
+    match ProtocolServiceApplication::check_machine() {
+        Ok(data) => {
+            let resp: ResponseStruct<Vec<System>> = map_response(
+                ResponseMessage::Ok as u32,
+                ResponseMessage::Ok.to_string(),
+                None,
+                Some(data),
+            );
+            (StatusCode::OK, Json(resp).into_response())
+        }
+        Err(s) => {
+            let resp: ResponseStruct<String> = map_response(
+                ResponseMessage::Err as u32,
+                ResponseMessage::Err.to_string(),
+                Some(s),
+                None,
+            );
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(resp).into_response(),
+            )
+        }
     }
-}
-
-fn slic_ip(ip: String) -> String {
-    let mut split_ip: std::str::Split<&str> = ip.split(".");
-    let first_part = split_ip.next();
-    let second_part = split_ip.next();
-    let third_part = split_ip.next();
-    format!(
-        "{}.{}.{}",
-        first_part.unwrap(),
-        second_part.unwrap(),
-        third_part.unwrap()
-    )
 }
