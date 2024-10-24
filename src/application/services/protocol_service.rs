@@ -1,5 +1,6 @@
 use super::system_service::SystemServiceApplication;
 use crate::shared::rest_client::system_detail_rest_client::get_system_detail;
+use crate::shared::types::response_type::ResponseStruct;
 use crate::shared::{
     types::system_type::System,
     utils::{general::protocol_util::scan_network, win::protocol_util::get_addrs},
@@ -20,7 +21,7 @@ impl ProtocolServiceApplication {
 
     fn combine_data_ip_active(ips_active: Vec<String>, my_ip: String) -> Vec<System> {
         let mut result: Vec<System> = Vec::new();
-        let mut handles: Vec<thread::JoinHandle<Option<System>>> = Vec::new();
+        let mut handles: Vec<thread::JoinHandle<Option<ResponseStruct<System>>>> = Vec::new();
         for ip in ips_active {
             if my_ip.eq_ignore_ascii_case(&ip) {
                 match SystemServiceApplication::get_system_detail(ip) {
@@ -45,12 +46,12 @@ impl ProtocolServiceApplication {
 
     fn get_async_system(
         result: &mut Vec<System>,
-        handles: Vec<thread::JoinHandle<Option<System>>>,
+        handles: Vec<thread::JoinHandle<Option<ResponseStruct<System>>>>,
     ) {
         for handle in handles {
             if let Ok(r) = handle.join() {
                 if let Some(s) = r {
-                    result.push(s);
+                    result.push(s.data.unwrap());
                 }
             }
         }

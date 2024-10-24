@@ -5,7 +5,7 @@ pub enum SystemDetail {
     Prefix,
     Path,
     Port = 3000,
-    Timeout = 60,
+    Timeout = 6000,
 }
 
 impl fmt::Display for SystemDetail {
