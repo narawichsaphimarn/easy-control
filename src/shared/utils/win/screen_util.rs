@@ -2,6 +2,7 @@ use winapi::um::winuser::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
 
 use crate::shared::types::screen_type::Screen;
 
+#[cfg(target_os = "windows")]
 pub fn get_screen_metrics() -> Screen {
     unsafe {
         let screen_width = GetSystemMetrics(SM_CXSCREEN);
@@ -14,6 +15,7 @@ pub fn get_screen_metrics() -> Screen {
     }
 }
 
+#[cfg(target_os = "windows")]
 pub fn scale_coordinates(
     x: i32,
     y: i32,
