@@ -10,7 +10,8 @@ pub struct ProtocolServiceApplication;
 
 impl ProtocolServiceApplication {
     pub fn check_machine() -> Result<Vec<System>, String> {
-        let ips = get_addrs();
+        let ips: (Vec<String>, Vec<String>) = get_addrs();
+        log::debug!("ips : {:?}", ips.clone());
         let select_ip = Self::select_ip(ips);
         log::debug!("Select ip : {:?}", select_ip.clone());
         let ip = Self::slic_ip(select_ip.clone());

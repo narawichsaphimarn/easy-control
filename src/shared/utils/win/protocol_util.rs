@@ -13,7 +13,7 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
         for ip in adapter.ip_addresses() {
             if ip.is_ipv4() {
                 if adapter
-                    .description()
+                    .friendly_name()
                     .contains(&InterfaceWinDesc::Wireless.to_string())
                     && adapter.if_type() == ipconfig::IfType::Ieee80211
                 {
