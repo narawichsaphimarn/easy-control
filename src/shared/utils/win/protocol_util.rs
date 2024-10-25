@@ -17,14 +17,14 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
                     .contains(&InterfaceWinDesc::Wireless.to_string())
                     && adapter.if_type() == ipconfig::IfType::Ieee80211
                 {
-                    log::debug!("Wi-Fi adapter {} and IPv4 {}", adapter.description(), ip);
+                    log::debug!("Wi-Fi adapter {} and IPv4 {}", adapter.friendly_name(), ip);
                     wlan_addrs.push(ip.to_string());
                 } else if adapter.if_type() == ipconfig::IfType::EthernetCsmacd
                     && adapter
-                        .description()
+                        .friendly_name()
                         .contains(&InterfaceWinDesc::Ethernet.to_string())
                 {
-                    log::debug!("LAN adapter {} and IPv4 {}", adapter.description(), ip);
+                    log::debug!("LAN adapter {} and IPv4 {}", adapter.friendly_name(), ip);
                     lan_addrs.push(ip.to_string());
                 }
             }
