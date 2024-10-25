@@ -4,6 +4,7 @@ use crate::shared::{
 };
 use ipconfig;
 
+#[cfg(target_os = "windows")]
 pub fn get_addrs() -> (Vec<String>, Vec<String>) {
     let adapters = ipconfig::get_adapters().unwrap();
     let mut wlan_addrs: Vec<String> = Vec::new();
@@ -34,6 +35,7 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
     (wlan_addrs, lan_addrs)
 }
 
+#[cfg(target_os = "windows")]
 pub fn get_mac_addr(ip_addr: String) -> String {
     let adapters = ipconfig::get_adapters().unwrap();
     let mut mac: String = String::new();

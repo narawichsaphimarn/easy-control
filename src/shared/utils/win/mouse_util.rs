@@ -1,4 +1,5 @@
 use std::ptr;
+#[cfg(target_os = "windows")]
 use winapi::{
     shared::windef::{POINT, RECT},
     um::winuser::{
@@ -9,6 +10,7 @@ use winapi::{
 
 use crate::shared::{constants::screen_constant::PositionAtEdge, types::screen_type::Screen};
 
+#[cfg(target_os = "windows")]
 pub fn get_cursor_point() -> POINT {
     let mut cursor_pos = POINT { x: 0, y: 0 };
     unsafe {
@@ -17,6 +19,7 @@ pub fn get_cursor_point() -> POINT {
     cursor_pos
 }
 
+#[cfg(target_os = "windows")]
 pub fn lock_cursor(cursor_pos: POINT) {
     unsafe {
         let rect = RECT {
@@ -29,12 +32,14 @@ pub fn lock_cursor(cursor_pos: POINT) {
     }
 }
 
+#[cfg(target_os = "windows")]
 pub fn unlock_cursor() {
     unsafe {
         ClipCursor(std::ptr::null());
     }
 }
 
+#[cfg(target_os = "windows")]
 pub fn check_position_at_edge(cursor_pos: POINT, screen: Screen) -> Option<PositionAtEdge> {
     if cursor_pos.x <= 0 {
         return Some(PositionAtEdge::Left);
@@ -49,6 +54,7 @@ pub fn check_position_at_edge(cursor_pos: POINT, screen: Screen) -> Option<Posit
     }
 }
 
+#[cfg(target_os = "windows")]
 unsafe extern "system" fn mouse_hook_proc(n_code: i32, w_param: usize, l_param: isize) -> isize {
     if n_code >= 0 && w_param == WM_MOUSEMOVE as usize {
         let mouse_data = *(l_param as *const winapi::shared::windef::POINT);
@@ -61,6 +67,7 @@ unsafe extern "system" fn mouse_hook_proc(n_code: i32, w_param: usize, l_param: 
     CallNextHookEx(ptr::null_mut(), n_code, w_param, l_param)
 }
 
+#[cfg(target_os = "windows")]
 pub fn check_mouse_position() {
     unsafe {
         SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), ptr::null_mut(), 0);
@@ -73,12 +80,14 @@ pub fn check_mouse_position() {
     }
 }
 
+#[cfg(target_os = "windows")]
 pub fn hidden_cursor() {
     unsafe {
         ShowCursor(0);
     }
 }
 
+#[cfg(target_os = "windows")]
 pub fn show_cursor() {
     unsafe {
         ShowCursor(1);
