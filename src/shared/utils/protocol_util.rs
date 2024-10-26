@@ -135,10 +135,10 @@ fn map_wifi_or_lan(name: String) -> (String, String) {
         } else if line.starts_with(InterfaceDesc::Device.to_string().as_str()) {
             let device = line.split(':').nth(1).unwrap().trim();
             if hardware_port.eq_ignore_ascii_case(InterfaceDesc::Wireless.to_string().as_str()) {
-                println!("{} is a WLAN (Wi-Fi) interface", device);
+                log::debug!("{} is a WLAN (Wi-Fi) interface", device);
                 wlan_iface = device.to_string();
             } else if hardware_port.eq_ignore_ascii_case(InterfaceDesc::Ethernet.to_string().as_str()) {
-                println!("{} is a LAN (Ethernet) interface", device);
+                log::debug!("{} is a LAN (Ethernet) interface", device);
                 lan_iface = device.to_string();
             }
         }
