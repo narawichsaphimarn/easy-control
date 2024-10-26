@@ -1,3 +1,4 @@
+use std::ascii::AsciiExt;
 use crate::shared::{
     constants::protocol_constant::InterfaceDesc,
     utils::convert::byte_convert::convert_option_byte_to_string,
@@ -22,14 +23,13 @@ pub fn ping_ip(ip: &str) -> bool {
         None,
         None,
         None,
-    )
-        .is_ok();
+    ).is_ok();
 }
 
 #[cfg(target_os = "macos")]
 pub fn ping_ip(ip: &str) -> bool {
     let output = Command::new("ping")
-        .arg("-c 1")  // ส่งแค่ 1 packet
+        .arg("-c 1")
         .arg(ip)
         .output()
         .expect("Failed to execute ping");
@@ -130,14 +130,14 @@ fn map_wifi_or_lan(name: String) -> (String, String) {
     let mut wlan_iface: String = String::new();
     let mut lan_iface: String = String::new();
     for line in lines {
-        if line.starts_with("Hardware Port:") {
+        if line.starts_with(InterfaceDesc::Hardware.to_string().as_str()) {
             hardware_port = line.split(':').nth(1).unwrap().trim();
-        } else if line.starts_with("Device:") {
+        } else if line.starts_with(InterfaceDesc::Device.to_string().as_str()) {
             let device = line.split(':').nth(1).unwrap().trim();
-            if hardware_port == "Wi-Fi" {
+            if hardware_port.eq_ignore_ascii_case(InterfaceDesc::Wireless.to_string().as_str()) {
                 println!("{} is a WLAN (Wi-Fi) interface", device);
                 wlan_iface = device.to_string();
-            } else if hardware_port == "Ethernet" {
+            } else if hardware_port.eq_ignore_ascii_case(InterfaceDesc::Ethernet.to_string().as_str()) {
                 println!("{} is a LAN (Ethernet) interface", device);
                 lan_iface = device.to_string();
             }
