@@ -102,7 +102,6 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
     for i_face in interfaces {
         for ip in i_face.clone().ips {
             if ip.is_ipv4() {
-                // log::debug!("Interface {:#?}", i_face.clone());
                 let (wl, et) = map_wifi_or_lan(i_face.clone().name);
                 if wl.eq_ignore_ascii_case(&i_face.clone().name)
                 {
