@@ -1,16 +1,16 @@
 use std::fmt;
 
 #[derive(Debug, Clone, Copy)]
-pub enum InterfaceWinDesc {
+pub enum InterfaceDesc {
     Wireless,
     Ethernet,
 }
 
-impl fmt::Display for InterfaceWinDesc {
+impl fmt::Display for InterfaceDesc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            InterfaceWinDesc::Ethernet => write!(f, "Ethernet"),
-            InterfaceWinDesc::Wireless => write!(f, "WiFi"),
+            InterfaceDesc::Ethernet => write!(f, "Ethernet"),
+            InterfaceDesc::Wireless => write!(f, "WiFi"),
         }
     }
 }

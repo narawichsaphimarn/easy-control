@@ -1,8 +1,7 @@
 use crate::shared::{
     types::system_type::System,
     utils::{
-        general::system_util::get_hostname,
-        win::{protocol_util::get_mac_addr, screen_util::get_screen_metrics},
+        protocol_util::get_mac_addr, screen_util::get_screen_metrics, system_util::get_hostname,
     },
 };
 

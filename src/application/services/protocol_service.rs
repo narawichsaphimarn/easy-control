@@ -3,7 +3,7 @@ use crate::shared::rest_client::system_detail_rest_client::get_system_detail;
 use crate::shared::types::response_type::ResponseStruct;
 use crate::shared::{
     types::system_type::System,
-    utils::{general::protocol_util::scan_network, win::protocol_util::get_addrs},
+    utils::protocol_util::{get_addrs, scan_network},
 };
 use std::thread;
 pub struct ProtocolServiceApplication;
@@ -14,7 +14,7 @@ impl ProtocolServiceApplication {
         log::debug!("ips : {:?}", ips.clone());
         let select_ip = Self::select_ip(ips);
         log::debug!("Select ip : {:?}", select_ip.clone());
-        let ip = Self::slic_ip(select_ip.clone());
+        let ip = Self::slice_ip(select_ip.clone());
         let ips_active = scan_network(&ip);
         log::debug!("IPS Active : {:?}", ips_active);
         return Result::Ok(Self::combine_data_ip_active(ips_active, select_ip.clone()));
@@ -59,14 +59,14 @@ impl ProtocolServiceApplication {
     }
 
     fn select_ip(ips: (Vec<String>, Vec<String>)) -> String {
-        if ips.1.len() > 0 {
-            return ips.1.get(0).cloned().unwrap();
+        return if ips.1.len() > 0 {
+            ips.1.get(0).cloned().unwrap()
         } else {
-            return ips.0.get(0).cloned().unwrap();
+            ips.0.get(0).cloned().unwrap()
         }
     }
 
-    fn slic_ip(ip: String) -> String {
+    fn slice_ip(ip: String) -> String {
         let mut split_ip: std::str::Split<&str> = ip.split(".");
         let first_part = split_ip.next();
         let second_part = split_ip.next();

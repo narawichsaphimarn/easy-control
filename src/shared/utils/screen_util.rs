@@ -1,6 +1,9 @@
-use winapi::um::winuser::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
-
 use crate::shared::types::screen_type::Screen;
+use log;
+#[cfg(target_os = "macos")]
+use rdev::display_size;
+#[cfg(target_os = "windows")]
+use winapi::um::winuser::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
 
 #[cfg(target_os = "windows")]
 pub fn get_screen_metrics() -> Screen {
@@ -13,6 +16,16 @@ pub fn get_screen_metrics() -> Screen {
         };
         screen
     }
+}
+
+#[cfg(target_os = "macos")]
+pub fn get_screen_metrics() -> Screen {
+    let screen = display_size().unwrap();
+    let screen = Screen {
+        width: screen.0 as i32,
+        height: screen.1 as i32,
+    };
+    screen
 }
 
 #[cfg(target_os = "windows")]

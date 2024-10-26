@@ -1,6 +1,6 @@
 use crate::shared::{
     constants::rest_status_constant::ResponseMessage, types::response_type::ResponseStruct,
-    utils::general::mapping::response_mapping::map_response,
+    utils::mapping::response_mapping::map_response,
 };
 use axum::{
     http::StatusCode,
