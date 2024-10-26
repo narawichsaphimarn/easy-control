@@ -1,4 +1,3 @@
-use std::ascii::AsciiExt;
 use crate::shared::{
     constants::protocol_constant::InterfaceDesc,
     utils::convert::byte_convert::convert_option_byte_to_string,
@@ -102,7 +101,7 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
     for i_face in interfaces {
         for ip in i_face.clone().ips {
             if ip.is_ipv4() {
-                let (wl, et) = map_wifi_or_lan(i_face.clone().name);
+                let (wl, et) = map_wifi_or_lan();
                 if wl.eq_ignore_ascii_case(&i_face.clone().name)
                 {
                     log::debug!("Wi-Fi adapter {} and IPv4 {}", i_face.clone().name, ip);
@@ -119,7 +118,7 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
 }
 
 #[cfg(target_os = "macos")]
-fn map_wifi_or_lan(name: String) -> (String, String) {
+fn map_wifi_or_lan() -> (String, String) {
     let output = Command::new("networksetup")
         .arg("-listallhardwareports")
         .output()
