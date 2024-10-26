@@ -13,6 +13,7 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 pub fn ping_ip(ip: &str) -> bool {
     return ping::ping(
         ip.parse().unwrap(),
@@ -23,6 +24,16 @@ pub fn ping_ip(ip: &str) -> bool {
         None,
     )
         .is_ok();
+}
+
+#[cfg(target_os = "macos")]
+pub fn ping_ip(ip: &str) -> bool {
+    let output = Command::new("ping")
+        .arg("-c 1")  // ส่งแค่ 1 packet
+        .arg(ip)
+        .output()
+        .expect("Failed to execute ping");
+    output.status.success()
 }
 
 pub fn scan_network(base_ip: &str) -> Vec<String> {
@@ -157,7 +168,7 @@ pub fn get_mac_addr(ip_addr: String) -> String {
     let interfaces = datalink::interfaces();
     for i_face in interfaces {
         for ip in i_face.ips {
-            if ip.is_ipv4() && ip.to_string().eq(&ip_addr) {
+            if ip.is_ipv4() && ip.ip().to_string().eq_ignore_ascii_case(&ip_addr) {
                 if let Some(s) = i_face.mac {
                     mac = s.to_string();
                 }

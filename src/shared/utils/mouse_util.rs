@@ -1,4 +1,3 @@
-use std::ptr;
 #[cfg(target_os = "windows")]
 use winapi::{
     shared::windef::{POINT, RECT},
@@ -7,8 +6,6 @@ use winapi::{
         ShowCursor, TranslateMessage, MSG, WH_MOUSE_LL, WM_MOUSEMOVE,
     },
 };
-
-use crate::shared::{constants::screen_constant::PositionAtEdge, types::screen_type::Screen};
 
 #[cfg(target_os = "windows")]
 pub fn get_cursor_point() -> POINT {

@@ -63,7 +63,7 @@ impl ProtocolServiceApplication {
             ips.1.get(0).cloned().unwrap()
         } else {
             ips.0.get(0).cloned().unwrap()
-        }
+        };
     }
 
     fn slice_ip(ip: String) -> String {

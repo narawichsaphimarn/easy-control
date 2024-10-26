@@ -1,8 +1,5 @@
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Json},
-};
-
+use crate::presentation::models::system_model::Pagination;
+use crate::shared::utils::protocol_util::ping_ip;
 use crate::{
     application::services::protocol_service::ProtocolServiceApplication,
     shared::{
@@ -10,6 +7,11 @@ use crate::{
         types::{response_type::ResponseStruct, system_type::System},
         utils::mapping::response_mapping::map_response,
     },
+};
+use axum::extract::Query;
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Json},
 };
 
 pub async fn get_machine() -> impl IntoResponse {
@@ -36,4 +38,8 @@ pub async fn get_machine() -> impl IntoResponse {
             )
         }
     }
+}
+
+pub async fn ping(pagination: Query<Pagination>) -> impl IntoResponse {
+    (StatusCode::OK, Json(ping_ip(&*pagination.0.ip_addr)).into_response())
 }

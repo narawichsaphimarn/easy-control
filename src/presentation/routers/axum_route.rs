@@ -1,5 +1,6 @@
 use axum::{http::StatusCode, routing::get, Router};
 
+use crate::presentation::controllers::protocol_controller::ping;
 use crate::presentation::controllers::{
     actuator_controller::actuator, protocol_controller::get_machine,
     system_controller::get_system_detail,
@@ -14,6 +15,7 @@ pub fn route() -> Router {
         .route("/api/status", get(actuator))
         .route("/api/v1/check-machine", get(get_machine))
         .route("/api/v1/system-detail", get(get_system_detail))
+        .route("/api/v1/ping", get(ping))
         .fallback(fallback);
     app
 }
