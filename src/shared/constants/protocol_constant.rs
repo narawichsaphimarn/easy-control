@@ -1,13 +1,13 @@
 use std::fmt;
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 #[derive(Debug, Clone, Copy)]
 pub enum InterfaceDesc {
     Wireless,
     Ethernet,
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 impl fmt::Display for InterfaceDesc {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {

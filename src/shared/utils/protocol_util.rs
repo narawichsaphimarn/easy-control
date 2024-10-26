@@ -9,6 +9,8 @@ use ping;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use pnet::datalink;
 use std::error::Error;
+use std::fs;
+use std::path::Path;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
@@ -141,6 +143,38 @@ fn map_wifi_or_lan() -> (String, String) {
                 lan_iface = device.to_string();
             }
         }
+    }
+    (wlan_iface, lan_iface)
+}
+
+#[cfg(target_os = "linux")]
+fn map_wifi_or_lan() -> (String, String) {
+    let path = "/sys/class/net/";
+    let mut wlan_iface: String = String::new();
+    let mut lan_iface: String = String::new();
+    if let Ok(interfaces) = fs::read_dir(path) {
+        for interface in interfaces {
+            if let Ok(interface) = interface {
+                let iface_name = interface.file_name().into_string().unwrap();
+                let iface_type_path = format!("{}/type", interface.path().display());
+                if Path::new(&iface_type_path).exists() {
+                    let iface_type = fs::read_to_string(iface_type_path).unwrap().trim().to_string();
+                    match iface_type.as_str() {
+                        "1" => {
+                            log::debug!("{} is a LAN (Ethernet) interface", iface_name);
+                            lan_iface = iface_name;
+                        }
+                        "801" | "802" => {
+                            log::debug!("{} is a WLAN (Wi-Fi) interface", iface_name);
+                            wlan_iface = iface_name;
+                        }
+                        _ => log::debug!("{} is an unknown interface type", iface_name),
+                    }
+                }
+            }
+        }
+    } else {
+        println!("Could not read network interfaces.");
     }
     (wlan_iface, lan_iface)
 }
