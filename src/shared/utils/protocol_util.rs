@@ -74,7 +74,7 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
             if ip.is_ipv4() {
                 if adapter
                     .friendly_name()
-                    .contains(&InterfaceWinDesc::Wireless.to_string())
+                    .contains(&InterfaceDesc::Wireless.to_string())
                     && adapter.if_type() == ipconfig::IfType::Ieee80211
                 {
                     log::debug!("Wi-Fi adapter {} and IPv4 {}", adapter.friendly_name(), ip);
@@ -82,7 +82,7 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
                 } else if adapter.if_type() == ipconfig::IfType::EthernetCsmacd
                     && adapter
                     .friendly_name()
-                    .contains(&InterfaceWinDesc::Ethernet.to_string())
+                    .contains(&InterfaceDesc::Ethernet.to_string())
                 {
                     log::debug!("LAN adapter {} and IPv4 {}", adapter.friendly_name(), ip);
                     lan_addrs.push(ip.to_string());

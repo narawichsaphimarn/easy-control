@@ -1,3 +1,6 @@
+use crate::shared::constants::screen_constant::PositionAtEdge;
+use crate::shared::types::screen_type::Screen;
+use std::ptr;
 #[cfg(target_os = "windows")]
 use winapi::{
     shared::windef::{POINT, RECT},
