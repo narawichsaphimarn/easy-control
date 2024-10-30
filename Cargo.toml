@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 winapi = { version = "0.3.9", features = ["winuser", "windef"] }
 log = "0.4"
-env_logger = "0.11.5"
 dotenvy = "0.15"
 winit = "0.30.5"
 axum = "0.7.7"
@@ -22,3 +21,4 @@ quinn = "0.11.5"
 reqwest = { version = "0.12.8", features = ["json"] }
 rdev = "0.5.3"
 pnet = "0.35.0"
+chrono = "0.4"

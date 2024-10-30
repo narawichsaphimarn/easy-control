@@ -6,6 +6,7 @@ pub enum PositionAtEdge {
     Bottom,
     Left,
     Right,
+    None
 }
 
 impl fmt::Display for PositionAtEdge {
@@ -15,6 +16,7 @@ impl fmt::Display for PositionAtEdge {
             PositionAtEdge::Top => write!(f, "top"),
             PositionAtEdge::Left => write!(f, "left"),
             PositionAtEdge::Right => write!(f, "right"),
+            PositionAtEdge::None => write!(f, "none"),
         }
     }
 }

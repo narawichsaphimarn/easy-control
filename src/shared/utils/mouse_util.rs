@@ -1,4 +1,5 @@
 use crate::shared::constants::screen_constant::PositionAtEdge;
+use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::screen_type::Screen;
 use std::ptr;
 #[cfg(target_os = "windows")]
@@ -11,22 +12,22 @@ use winapi::{
 };
 
 #[cfg(target_os = "windows")]
-pub fn get_cursor_point() -> POINT {
+pub fn get_cursor_point() -> Mouse {
     let mut cursor_pos = POINT { x: 0, y: 0 };
     unsafe {
         GetCursorPos(&mut cursor_pos);
     }
-    cursor_pos
+    Mouse { x: cursor_pos.x as f64, y: cursor_pos.y as f64 }
 }
 
 #[cfg(target_os = "windows")]
-pub fn lock_cursor(cursor_pos: POINT) {
+pub fn lock_cursor(cursor_pos: Mouse) {
     unsafe {
         let rect = RECT {
-            left: cursor_pos.x,
-            top: cursor_pos.y,
-            right: cursor_pos.x + 1,
-            bottom: cursor_pos.y + 1,
+            left: cursor_pos.x as i32,
+            top: cursor_pos.y as i32,
+            right: (cursor_pos.x + 1.0) as i32,
+            bottom: (cursor_pos.y + 1.0) as i32,
         };
         ClipCursor(&rect);
     }
@@ -40,17 +41,17 @@ pub fn unlock_cursor() {
 }
 
 #[cfg(target_os = "windows")]
-pub fn check_position_at_edge(cursor_pos: POINT, screen: Screen) -> Option<PositionAtEdge> {
-    if cursor_pos.x <= 0 {
-        return Some(PositionAtEdge::Left);
-    } else if cursor_pos.x >= screen.width - 1 {
-        return Some(PositionAtEdge::Right);
-    } else if cursor_pos.y <= 0 {
-        return Some(PositionAtEdge::Top);
-    } else if cursor_pos.y >= screen.height - 1 {
-        return Some(PositionAtEdge::Bottom);
+pub fn check_position_at_edge(cursor_pos: Mouse, screen: Screen) -> Option<PositionAtEdge> {
+    if cursor_pos.x <= 0.0 {
+        Some(PositionAtEdge::Left)
+    } else if cursor_pos.x >= screen.width as f64 - 1.0 {
+        Some(PositionAtEdge::Right)
+    } else if cursor_pos.y <= 0.0 {
+        Some(PositionAtEdge::Top)
+    } else if cursor_pos.y >= screen.height as f64 - 1.0 {
+        Some(PositionAtEdge::Bottom)
     } else {
-        return None;
+        Some(PositionAtEdge::None)
     }
 }
 
