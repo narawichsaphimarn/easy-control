@@ -191,7 +191,7 @@ pub fn get_mac_addr(ip_addr: String) -> String {
     for adapter in adapters {
         for ip in adapter.ip_addresses() {
             if ip.is_ipv4() && ip.to_string().eq(&ip_addr) {
-                mac = convert_option_byte_to_string_for_mac(adapter.physical_address(), &"-".to_string());
+                mac = convert_option_byte_to_string_for_mac(adapter.physical_address(), &":".to_string());
                 break;
             }
         }

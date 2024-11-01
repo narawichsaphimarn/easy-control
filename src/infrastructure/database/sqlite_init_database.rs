@@ -33,7 +33,31 @@ impl SqliteDBInfraInit for SqliteDBInfra {
             (6, 'SCREEN_NUMBER', '6', '3,5,9'),
             (7, 'SCREEN_NUMBER', '7', '4,8'),
             (8, 'SCREEN_NUMBER', '8', '7,5,9'),
-            (9, 'SCREEN_NUMBER', '9', '6,8');
+            (9, 'SCREEN_NUMBER', '9', '6,8'),
+            (10, 'SCREEN_NUMBER', '1,2', 'RIGHT'),
+            (11, 'SCREEN_NUMBER', '1,4', 'BOTTOM'),
+            (12, 'SCREEN_NUMBER', '2,1', 'LEFT'),
+            (13, 'SCREEN_NUMBER', '2,3', 'RIGHT'),
+            (14, 'SCREEN_NUMBER', '2,5', 'BOTTOM'),
+            (15, 'SCREEN_NUMBER', '3,2', 'LEFT'),
+            (16, 'SCREEN_NUMBER', '3,6', 'BOTTOM'),
+            (17, 'SCREEN_NUMBER', '4,1', 'TOP'),
+            (18, 'SCREEN_NUMBER', '4,5', 'RIGHT'),
+            (19, 'SCREEN_NUMBER', '4,7', 'BOTTOM'),
+            (20, 'SCREEN_NUMBER', '5,2', 'TOP'),
+            (21, 'SCREEN_NUMBER', '5,4', 'LEFT'),
+            (22, 'SCREEN_NUMBER', '5,6', 'RIGHT'),
+            (23, 'SCREEN_NUMBER', '5,8', 'BOTTOM'),
+            (24, 'SCREEN_NUMBER', '6,3', 'TOP'),
+            (25, 'SCREEN_NUMBER', '6,5', 'LEFT'),
+            (26, 'SCREEN_NUMBER', '6,9', 'BOTTOM'),
+            (27, 'SCREEN_NUMBER', '7,4', 'TOP'),
+            (28, 'SCREEN_NUMBER', '7,8', 'RIGHT'),
+            (29, 'SCREEN_NUMBER', '8,5', 'TOP'),
+            (30, 'SCREEN_NUMBER', '8,7', 'LEFT'),
+            (31, 'SCREEN_NUMBER', '8,9', 'RIGHT'),
+            (32, 'SCREEN_NUMBER', '9,6', 'TOP'),
+            (33, 'SCREEN_NUMBER', '9,8', 'LEFT');
             ";
         let conn = Self::connect()?;
         Ok(Self::execute(&conn, query)?)

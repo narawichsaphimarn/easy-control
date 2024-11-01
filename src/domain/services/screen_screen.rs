@@ -18,11 +18,27 @@ impl ScreenServiceDomain {
 
     pub async fn screen_mapping_metric(screen: Vec<ScreenMappingRequest>) -> Result<(), Error> {
         ScreenMappingMetricRepository::truncate()?;
-        for system in screen {
+        for system in screen.clone() {
             let no = system.screen_no;
-            let machine = system.machine;
-            for row in ScreenMappingReferRepository::find_by_key_and_group(ScreenMapperController::ScreenNumber.to_string(), no.to_string())? {
-                log::debug!("{}", row.read::<&str, _>("mac"));
+            let mut machines_filter = screen.clone();
+            machines_filter.retain(|x| x.screen_no != no);
+            log::debug!("no {}", no.to_string());
+            for row_matrix in ScreenMappingReferRepository::find_by_key_and_group(ScreenMapperController::ScreenNumber.to_string(), no.to_string())? {
+                log::debug!("{}", row_matrix.read::<&str, _>("parameter_value"));
+                let numbers_matrix = row_matrix.read::<&str, _>("parameter_value").split(",");
+                for number_matrix in numbers_matrix {
+                    for machine_filter in &machines_filter {
+                        if number_matrix.eq_ignore_ascii_case(machine_filter.screen_no.to_string().as_ref()) {
+                            let position_group = format!("{},{}", no, machine_filter.screen_no);
+                            log::debug!("position_group {}", position_group);
+                            for position_value_row in ScreenMappingReferRepository::find_by_key_and_group(ScreenMapperController::ScreenNumber.to_string(), position_group)? {
+                                log::debug!("position_group value {}", position_value_row.read::<&str, _>("parameter_value"));
+                                let position = position_value_row.read::<&str, _>("parameter_value");
+                                let _ = ScreenMappingMetricRepository::save(system.machine.mac.to_string(), machine_filter.machine.mac.to_string(), position.to_string())?;
+                            }
+                        }
+                    }
+                }
             }
         }
         Ok(())
