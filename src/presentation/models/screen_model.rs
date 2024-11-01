@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::shared::types::system_type::System;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Clone, Serialize)]
 pub struct ScreenMappingRequest {

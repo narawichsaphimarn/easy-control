@@ -6,7 +6,7 @@ pub enum PositionAtEdge {
     Bottom,
     Left,
     Right,
-    None
+    None,
 }
 
 impl fmt::Display for PositionAtEdge {

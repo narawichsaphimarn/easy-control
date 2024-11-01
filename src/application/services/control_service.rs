@@ -1,6 +1,3 @@
-use crate::shared::utils::mouse_util::{check_position_at_edge, get_cursor_point};
-use crate::shared::utils::screen_util::get_screen_metrics;
-
 pub struct ControlServiceApplication;
 
 impl ControlServiceApplication {

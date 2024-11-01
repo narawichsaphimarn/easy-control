@@ -7,10 +7,10 @@ pub fn map_response<T>(
     data: Option<T>,
 ) -> ResponseStruct<T> {
     let resp: ResponseStruct<T> = ResponseStruct {
-        data: data,
-        status: status,
-        message: message,
-        desc: desc,
+        data,
+        status,
+        message,
+        desc,
     };
     resp
 }

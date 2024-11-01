@@ -7,10 +7,10 @@ pub mod shared;
 use dotenvy::dotenv;
 use infrastructure::api::axum_config::start;
 
+use crate::application::services::control_service::ControlServiceApplication;
 use crate::infrastructure::database::sqlite_database::{SqliteDBInfra, SqliteDBInfraInit};
 use crate::infrastructure::logs::log_custom::SimpleLogger;
 use log::LevelFilter;
-use crate::application::services::control_service::ControlServiceApplication;
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
