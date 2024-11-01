@@ -15,7 +15,7 @@ use axum::{
 };
 
 pub async fn get_machine() -> impl IntoResponse {
-    match ProtocolServiceApplication::check_machine() {
+    match ProtocolServiceApplication::check_machine().await {
         Ok(data) => {
             let resp: ResponseStruct<Vec<System>> = map_response(
                 ResponseMessage::Ok as u32,
@@ -41,5 +41,5 @@ pub async fn get_machine() -> impl IntoResponse {
 }
 
 pub async fn ping(pagination: Query<Pagination>) -> impl IntoResponse {
-    (StatusCode::OK, Json(ping_ip(&*pagination.0.ip_addr)).into_response())
+    (StatusCode::OK, Json(ping_ip(&*pagination.0.ip_addr).await).into_response())
 }

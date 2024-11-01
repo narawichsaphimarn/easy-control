@@ -4,34 +4,27 @@ pub mod infrastructure;
 pub mod presentation;
 pub mod shared;
 
-use crate::application::services::control_service::ControlServiceApplication;
 use dotenvy::dotenv;
 use infrastructure::api::axum_config::start;
-use std::thread;
 
+use crate::infrastructure::database::sqlite_database::{SqliteDBInfra, SqliteDBInfraInit};
 use crate::infrastructure::logs::log_custom::SimpleLogger;
-use log::{LevelFilter, SetLoggerError};
+use log::LevelFilter;
+use crate::application::services::control_service::ControlServiceApplication;
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
-fn main() {
-    dotenv().ok();
-    init().expect("Log initial error");
-    let mut threads = Vec::new();
-    let net_thd = thread::Builder::new().name("net".to_string()).spawn(move || {
-        start();
-    }).unwrap();
-    let main_thd = thread::Builder::new().name("control".to_string()).spawn(move || {
-        ControlServiceApplication::main();
-    }).unwrap();
-    threads.push(main_thd);
-    threads.push(net_thd);
-    for thread in threads {
-        thread.join().unwrap();
-    }
+#[tokio::main]
+async fn main() {
+    init();
+    tokio::spawn(start());
+    tokio::spawn(ControlServiceApplication::main());
+    tokio::signal::ctrl_c().await.unwrap();
 }
 
-pub fn init() -> Result<(), SetLoggerError> {
+pub fn init() {
+    dotenv().ok();
     log::set_logger(&LOGGER)
-        .map(|()| log::set_max_level(LevelFilter::Trace))
+        .map(|()| log::set_max_level(LevelFilter::Trace)).expect("Log initial error");
+    SqliteDBInfra::init().expect("Database initial error");
 }

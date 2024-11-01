@@ -9,15 +9,16 @@ use std::thread;
 pub struct ProtocolServiceApplication;
 
 impl ProtocolServiceApplication {
-    pub fn check_machine() -> Result<Vec<System>, String> {
-        let ips: (Vec<String>, Vec<String>) = get_addrs();
-        log::debug!("ips : {:?}", ips.clone());
-        let select_ip = Self::select_ip(ips);
-        log::debug!("Select ip : {:?}", select_ip.clone());
+    pub async fn check_machine() -> Result<Vec<System>, String> {
+        let ips: (String, String) = get_addrs();
+        log::debug!("ips  wlan : {}, lan: {}", ips.0, ips.1);
+        let (select_ip, unselect_ip) = Self::select_ip(ips);
+        log::debug!("Select ip : {} | UnSelect ip: {}", select_ip.clone(), unselect_ip.clone());
         let ip = Self::slice_ip(select_ip.clone());
-        let ips_active = scan_network(&ip);
+        let mut ips_active = scan_network(&ip).await;
+        ips_active.retain(|ip| ip != &unselect_ip);
         log::debug!("IPS Active : {:?}", ips_active);
-        return Result::Ok(Self::combine_data_ip_active(ips_active, select_ip.clone()));
+        Ok(Self::combine_data_ip_active(ips_active, select_ip.clone()))
     }
 
     fn combine_data_ip_active(ips_active: Vec<String>, my_ip: String) -> Vec<System> {
@@ -58,12 +59,12 @@ impl ProtocolServiceApplication {
         }
     }
 
-    fn select_ip(ips: (Vec<String>, Vec<String>)) -> String {
-        return if ips.1.len() > 0 {
-            ips.1.get(0).cloned().unwrap()
+    fn select_ip(ips: (String, String)) -> (String, String) {
+        if !ips.0.is_empty() {
+            (ips.1, ips.0)
         } else {
-            ips.0.get(0).cloned().unwrap()
-        };
+            (ips.0, ips.1)
+        }
     }
 
     fn slice_ip(ip: String) -> String {

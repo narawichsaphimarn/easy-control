@@ -1,30 +1,35 @@
+use crate::shared::utils::convert::byte_convert::convert_option_byte_to_string_for_mac;
 use crate::shared::{
     constants::protocol_constant::InterfaceDesc,
     utils::convert::byte_convert::convert_option_byte_to_string,
 };
+use futures::stream::StreamExt;
+use futures::stream::TryStreamExt;
 #[cfg(target_os = "windows")]
 use ipconfig;
 use log;
 use ping;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use pnet::datalink;
+use serde::de::Unexpected::{Option, Str};
 use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
+use tokio::task;
 
 #[cfg(any(target_os = "windows", target_os = "linux"))]
-pub fn ping_ip(ip: &str) -> bool {
-    return ping::ping(
+pub async fn ping_ip(ip: &str) -> bool {
+    ping::ping(
         ip.parse().unwrap(),
-        Some(Duration::from_secs(10)),
+        Some(Duration::from_secs(1)),
         None,
         None,
         None,
         None,
-    ).is_ok();
+    ).is_ok()
 }
 
 #[cfg(target_os = "macos")]
@@ -37,37 +42,37 @@ pub fn ping_ip(ip: &str) -> bool {
     output.status.success()
 }
 
-pub fn scan_network(base_ip: &str) -> Vec<String> {
+pub async fn scan_network(base_ip: &str) -> Vec<String> {
     let mut ips_act: Vec<String> = Vec::new();
-    let handles: Vec<thread::JoinHandle<Option<String>>> = (1..=255)
-        .map(|i| {
-            let base_ip = base_ip.to_string();
-            thread::spawn(move || {
-                let ip: String = format!("{}.{}", base_ip, i);
-                log::debug!("Start ping IP: {}", ip);
-                if ping_ip(&ip) {
-                    log::debug!("Active IP: {}", ip);
-                    return Some(ip);
-                }
+    let mut tasks = Vec::new();
+
+    for i in 1..=255 {
+        let base_ip = base_ip.to_string();
+        let ip = format!("{}.{}", base_ip, i);
+        log::debug!("Start ping IP: {}", ip);
+        let task = task::spawn(async move {
+            if ping_ip(&ip).await {
+                log::debug!("Active IP: {}", ip);
+                Some(ip)
+            } else {
                 None
-            })
-        })
-        .collect();
-    for handle in handles {
-        if let Ok(result) = handle.join() {
-            if let Some(active_ip) = result {
-                ips_act.push(active_ip);
             }
+        });
+        tasks.push(task);
+    }
+    for task in tasks {
+        if let Ok(Some(active_ip)) = task.await {
+            ips_act.push(active_ip);
         }
     }
     ips_act
 }
 
 #[cfg(target_os = "windows")]
-pub fn get_addrs() -> (Vec<String>, Vec<String>) {
+pub fn get_addrs() -> (String, String) {
     let adapters = ipconfig::get_adapters().unwrap();
-    let mut wlan_addrs: Vec<String> = Vec::new();
-    let mut lan_addrs: Vec<String> = Vec::new();
+    let mut wlan_addrs: String = String::new();
+    let mut lan_addrs: String = String::new();
 
     for adapter in adapters {
         for ip in adapter.ip_addresses() {
@@ -75,17 +80,17 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
                 if adapter
                     .friendly_name()
                     .contains(&InterfaceDesc::Wireless.to_string())
-                    && adapter.if_type() == ipconfig::IfType::Ieee80211
+                    && adapter.if_type() == ipconfig::IfType::Ieee80211 && wlan_addrs.is_empty()
                 {
                     log::debug!("Wi-Fi adapter {} and IPv4 {}", adapter.friendly_name(), ip);
-                    wlan_addrs.push(ip.to_string());
+                    wlan_addrs = ip.to_string();
                 } else if adapter.if_type() == ipconfig::IfType::EthernetCsmacd
                     && adapter
                     .friendly_name()
-                    .contains(&InterfaceDesc::Ethernet.to_string())
+                    .contains(&InterfaceDesc::Ethernet.to_string()) && lan_addrs.is_empty()
                 {
                     log::debug!("LAN adapter {} and IPv4 {}", adapter.friendly_name(), ip);
-                    lan_addrs.push(ip.to_string());
+                    lan_addrs = ip.to_string();
                 }
             }
         }
@@ -95,23 +100,23 @@ pub fn get_addrs() -> (Vec<String>, Vec<String>) {
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
-pub fn get_addrs() -> (Vec<String>, Vec<String>) {
+pub fn get_addrs() -> (String, String) {
     log::debug!("Start mapping address");
-    let mut wlan_addrs: Vec<String> = Vec::new();
-    let mut lan_addrs: Vec<String> = Vec::new();
+    let mut wlan_addrs: String = String::new();
+    let mut lan_addrs: String = String::new();
     let interfaces = datalink::interfaces();
     for i_face in interfaces {
         for ip in i_face.clone().ips {
             if ip.is_ipv4() {
                 let (wl, et) = map_wifi_or_lan();
-                if wl.eq_ignore_ascii_case(&i_face.clone().name)
+                if wl.eq_ignore_ascii_case(&i_face.clone().name) && wlan_addrs.is_empty()
                 {
                     log::debug!("Wi-Fi adapter {} and IPv4 {}", i_face.clone().name, ip);
-                    wlan_addrs.push(ip.ip().to_string());
-                } else if et.eq_ignore_ascii_case(&i_face.clone().name)
+                    wlan_addrs = ip.ip().to_string();
+                } else if et.eq_ignore_ascii_case(&i_face.clone().name) && lan_addrs.is_empty()
                 {
                     log::debug!("LAN adapter {} and IPv4 {}", i_face.clone().name, ip);
-                    lan_addrs.push(ip.ip().to_string());
+                    lan_addrs = ip.ip().to_string();
                 }
             }
         }
@@ -186,7 +191,7 @@ pub fn get_mac_addr(ip_addr: String) -> String {
     for adapter in adapters {
         for ip in adapter.ip_addresses() {
             if ip.is_ipv4() && ip.to_string().eq(&ip_addr) {
-                mac = convert_option_byte_to_string(adapter.physical_address(), &"-".to_string());
+                mac = convert_option_byte_to_string_for_mac(adapter.physical_address(), &"-".to_string());
                 break;
             }
         }

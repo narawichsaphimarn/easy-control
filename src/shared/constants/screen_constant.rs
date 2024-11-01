@@ -20,3 +20,16 @@ impl fmt::Display for PositionAtEdge {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum ScreenMapperController {
+    ScreenNumber
+}
+
+impl fmt::Display for ScreenMapperController {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ScreenMapperController::ScreenNumber => write!(f, "SCREEN_NUMBER"),
+        }
+    }
+}

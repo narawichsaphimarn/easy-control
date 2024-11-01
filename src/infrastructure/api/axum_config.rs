@@ -3,7 +3,6 @@ use log;
 
 use crate::presentation::routers::axum_route::route;
 
-#[tokio::main]
 pub async fn start() {
     let app = route();
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

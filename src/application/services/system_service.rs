@@ -17,7 +17,8 @@ impl SystemServiceApplication {
         Ok(System {
             host_name: hostname.unwrap(),
             screen: get_screen_metrics(),
-            mac: get_mac_addr(ip_addr),
+            mac: get_mac_addr(ip_addr.clone()),
+            ip: ip_addr,
         })
     }
 }
