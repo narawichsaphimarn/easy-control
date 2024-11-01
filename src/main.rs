@@ -9,7 +9,7 @@ use infrastructure::api::axum_config::start;
 
 use crate::application::services::control_service::ControlServiceApplication;
 use crate::infrastructure::database::sqlite_database::{SqliteDBInfra, SqliteDBInfraInit};
-use crate::infrastructure::logs::log_custom::SimpleLogger;
+use crate::infrastructure::log::log_custom::SimpleLogger;
 use log::LevelFilter;
 
 static LOGGER: SimpleLogger = SimpleLogger;
