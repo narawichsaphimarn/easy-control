@@ -1,14 +1,13 @@
 use crate::shared::constants::screen_constant::PositionAtEdge;
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::screen_type::Screen;
-#[cfg(target_os = "windows")]
-use std::ptr;
+use winapi::um::winuser::SetCursorPos;
 #[cfg(target_os = "windows")]
 use winapi::{
     shared::windef::{POINT, RECT},
     um::winuser::{
-        CallNextHookEx, ClipCursor, DispatchMessageW, GetCursorPos, GetMessageW, SetWindowsHookExW,
-        ShowCursor, TranslateMessage, MSG, WH_MOUSE_LL, WM_MOUSEMOVE,
+        ClipCursor, GetCursorPos,
+        ShowCursor,
     },
 };
 
@@ -61,29 +60,15 @@ pub fn check_position_at_edge(cursor_pos: Mouse, screen: Screen) -> Option<Posit
     }
 }
 
-#[cfg(target_os = "windows")]
-unsafe extern "system" fn mouse_hook_proc(n_code: i32, w_param: usize, l_param: isize) -> isize {
-    if n_code >= 0 && w_param == WM_MOUSEMOVE as usize {
-        let mouse_data = *(l_param as *const winapi::shared::windef::POINT);
-        log::debug!(
-            "Mouse moved to position: ({}, {})",
-            mouse_data.x,
-            mouse_data.y
-        );
-    }
-    CallNextHookEx(ptr::null_mut(), n_code, w_param, l_param)
-}
 
-#[cfg(target_os = "windows")]
-pub fn check_mouse_position() {
-    unsafe {
-        SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), ptr::null_mut(), 0);
-
-        let mut msg: MSG = std::mem::zeroed();
-        while GetMessageW(&mut msg, ptr::null_mut(), 0, 0) != 0 {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
-        }
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+pub fn revere_mouse_position(edge: PositionAtEdge, screen: Screen, cursor_pos: Mouse) {
+    match edge {
+        PositionAtEdge::Top => { move_cursor(cursor_pos.x as i32, (screen.height - cursor_pos.y as i32) - 1) }
+        PositionAtEdge::Bottom => { move_cursor(cursor_pos.x as i32, (cursor_pos.y as i32 - screen.height) + 1) }
+        PositionAtEdge::Left => { move_cursor((screen.width - cursor_pos.x as i32) - 1, cursor_pos.y as i32) }
+        PositionAtEdge::Right => { move_cursor((screen.width - cursor_pos.x as i32) + 1, cursor_pos.y as i32) }
+        PositionAtEdge::None => { () }
     }
 }
 
@@ -100,3 +85,11 @@ pub fn show_cursor() {
         ShowCursor(1);
     }
 }
+
+#[cfg(target_os = "windows")]
+pub fn move_cursor(x: i32, y: i32) {
+    unsafe {
+        SetCursorPos(x, y);
+    }
+}
+

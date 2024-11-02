@@ -1,4 +1,4 @@
-use sqlite::{Connection, Error, Row};
+use sqlite::{Connection, Error, Statement};
 use std::collections::HashMap;
 use std::env;
 
@@ -18,19 +18,19 @@ impl SqliteDBInfra {
         Ok(db_conn.execute(query)?)
     }
 
-    pub fn execute_param(db_conn: &Connection, query: &str, param: Vec<String>) -> Result<Vec<Row>, Error> {
+    pub fn execute_param<'a>(db_conn: &'a Connection, query: &'a str, param: Vec<String>) -> Result<Statement<'a>, Error> {
         let mut statement = db_conn.prepare(query)?;
         for (index, value) in param.iter().enumerate() {
             statement.bind((index + 1, value.as_str()))?;
         }
-        Ok(statement.iter().map(|row| row.unwrap()).collect())
+        Ok(statement)
     }
 
-    pub fn execute_param_hashmap(db_conn: &Connection, query: &str, param: HashMap<&str, String>) -> Result<Vec<Row>, Error> {
+    pub fn execute_param_hashmap<'a>(db_conn: &'a Connection, query: &'a str, param: HashMap<&'a str, String>) -> Result<Statement<'a>, Error> {
         let mut statement = db_conn.prepare(query)?;
         for (key, value) in param {
             statement.bind(((":".to_owned() + key).as_str(), value.as_str()))?;
         }
-        Ok(statement.iter().map(|row| row.unwrap()).collect())
+        Ok(statement)
     }
 }
