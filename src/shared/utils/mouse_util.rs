@@ -1,3 +1,4 @@
+use std::ptr;
 use crate::shared::constants::screen_constant::PositionAtEdge;
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::screen_type::Screen;
