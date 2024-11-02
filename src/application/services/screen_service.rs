@@ -1,13 +1,24 @@
 use crate::application::services::protocol_service::ProtocolServiceApplication;
 use crate::domain::services::screen_screen::ScreenServiceDomain;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
+use crate::shared::rest_client::screen_mapping_matrix_rest_client::{post_screen_matrix, update_screen_matrix};
 use crate::shared::utils::protocol_util::get_addrs;
 use futures::TryFutureExt;
 use sqlite::Error;
-use crate::shared::rest_client::screen_mapping_matrix_rest_client::post_screen_matrix;
 
 pub struct ScreenServiceApplication;
 impl ScreenServiceApplication {
+    pub async fn screen_mapping_update(request: Vec<ScreenMappingRequest>) -> Result<(), String> {
+        let screen_select = tokio::task::spawn(ScreenServiceDomain::screen_select(request.clone()));
+        let screen_mapping_metric = tokio::task::spawn(ScreenServiceDomain::screen_mapping_metric(request.clone()));
+        for x in [screen_select, screen_mapping_metric] {
+            let join = x.await;
+            let _ = join.map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }
+
+
     pub async fn screen_mapping_process(request: Vec<ScreenMappingRequest>) -> Result<(), String> {
         let screen_select = tokio::task::spawn(ScreenServiceDomain::screen_select(request.clone()));
         let screen_mapping_metric = tokio::task::spawn(ScreenServiceDomain::screen_mapping_metric(request.clone()));
@@ -27,7 +38,7 @@ impl ScreenServiceApplication {
         request_cp.retain(|x| { !x.machine.ip.eq_ignore_ascii_case(&select_ip) });
         let mut join_handlers = Vec::new();
         for x in request_cp {
-            let y = tokio::task::spawn(post_screen_matrix(x.machine.ip, request.clone()));
+            let y = tokio::task::spawn(update_screen_matrix(x.machine.ip, request.clone()));
             join_handlers.push(y);
         }
         for join_handler in join_handlers {

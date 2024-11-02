@@ -33,7 +33,7 @@ pub async fn ping_ip(ip: &str) -> bool {
 }
 
 #[cfg(target_os = "macos")]
-pub async  fn ping_ip(ip: &str) -> bool {
+pub async fn ping_ip(ip: &str) -> bool {
     let output = Command::new("ping")
         .arg("-c 1")
         .arg(ip)

@@ -1,4 +1,4 @@
 #[derive(Clone, Debug)]
 pub struct ScreenMappingMatrix {
-    pub id: i64
+    pub id: i64,
 }
