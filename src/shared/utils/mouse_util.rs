@@ -1,7 +1,8 @@
-use std::ptr;
 use crate::shared::constants::screen_constant::PositionAtEdge;
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::screen_type::Screen;
+#[cfg(target_os = "windows")]
+use std::ptr;
 #[cfg(target_os = "windows")]
 use winapi::{
     shared::windef::{POINT, RECT},
