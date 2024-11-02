@@ -1,7 +1,6 @@
 use crate::shared::constants::screen_constant::PositionAtEdge;
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::screen_type::Screen;
-use std::ptr;
 #[cfg(target_os = "windows")]
 use winapi::{
     shared::windef::{POINT, RECT},
@@ -18,6 +17,11 @@ pub fn get_cursor_point() -> Mouse {
         GetCursorPos(&mut cursor_pos);
     }
     Mouse { x: cursor_pos.x as f64, y: cursor_pos.y as f64 }
+}
+
+#[cfg(target_os = "macos")]
+pub fn get_cursor_point() -> Mouse {
+    Mouse { x: 0.0, y: 0.0 }
 }
 
 #[cfg(target_os = "windows")]
@@ -40,7 +44,7 @@ pub fn unlock_cursor() {
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 pub fn check_position_at_edge(cursor_pos: Mouse, screen: Screen) -> Option<PositionAtEdge> {
     if cursor_pos.x <= 0.0 {
         Some(PositionAtEdge::Left)
