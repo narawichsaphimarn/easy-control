@@ -46,7 +46,7 @@ pub async fn scan_network(base_ip: &str) -> Vec<String> {
     let mut ips_act: Vec<String> = Vec::new();
     let mut tasks = Vec::new();
 
-    for i in 1..=255 {
+    for i in 2..=255 {
         let base_ip = base_ip.to_string();
         let ip = format!("{}.{}", base_ip, i);
         log::debug!("Start ping IP: {}", ip);

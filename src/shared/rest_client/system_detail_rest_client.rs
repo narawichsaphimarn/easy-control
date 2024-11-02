@@ -8,8 +8,7 @@ use crate::{
     },
 };
 
-#[tokio::main]
-pub async fn get_system_detail(ip: String) -> Option<ResponseStruct<System>> {
+pub async fn get_system_detail(ip: String) -> Result<Option<System>, String> {
     let url = format!(
         "{}{}:{}{}{}",
         SystemDetail::Prefix.to_string(),
@@ -20,12 +19,12 @@ pub async fn get_system_detail(ip: String) -> Option<ResponseStruct<System>> {
     );
     log::debug!("Get system detail request url : {}", url);
     let resp: Result<ResponseStruct<System>, String> =
-        RestClientInfrastructure::get(url, Duration::from_secs(SystemDetail::Timeout as u64)).await;
+        RestClientInfrastructure::get(url, Duration::from_millis(SystemDetail::Timeout as u64)).await;
     match resp {
         Ok(s) => {
             log::debug!("Get system detail response: {:?}", s);
-            Some(s)
+            Ok(s.data)
         }
-        Err(_) => None,
+        Err(e) => Err(e),
     }
 }

@@ -1,1 +1,2 @@
 pub mod system_detail_rest_client;
+pub mod screen_mapping_matrix_rest_client;

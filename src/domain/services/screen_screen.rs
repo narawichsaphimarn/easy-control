@@ -1,4 +1,4 @@
-use crate::domain::repositories::screen_mapping_metric_repository::ScreenMappingMetricRepository;
+use crate::domain::repositories::screen_mapping_matrix_repository::ScreenMappingMetricRepository;
 use crate::domain::repositories::screen_mapping_refer_repository::ScreenMappingReferRepository;
 use crate::domain::repositories::screen_selector_repository::ScreenSelectorRepository;
 use crate::presentation::models::screen_model::ScreenMappingRequest;

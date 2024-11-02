@@ -18,3 +18,23 @@ impl fmt::Display for SystemDetail {
         }
     }
 }
+
+
+#[derive(Debug, Clone, Copy)]
+pub enum ScreenMappingMatrix {
+    Prefix,
+    Path,
+    Port = 3000,
+    Timeout = 6000,
+}
+
+impl fmt::Display for ScreenMappingMatrix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ScreenMappingMatrix::Path => write!(f, "/api/v1/screen-matrix"),
+            ScreenMappingMatrix::Port => write!(f, ""),
+            ScreenMappingMatrix::Timeout => write!(f, ""),
+            ScreenMappingMatrix::Prefix => write!(f, "http://"),
+        }
+    }
+}

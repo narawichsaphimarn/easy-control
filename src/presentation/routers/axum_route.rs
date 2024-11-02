@@ -16,7 +16,7 @@ pub fn route() -> Router {
         .route("/api/v1/check-machine", get(get_machine))
         .route("/api/v1/system-detail", get(get_system_detail))
         .route("/api/v1/ping", get(ping))
-        .route("/api/v1/mapping-screen", post(screen_mapping))
+        .route("/api/v1/screen-matrix", post(screen_mapping))
         .fallback(fallback);
     app
 }

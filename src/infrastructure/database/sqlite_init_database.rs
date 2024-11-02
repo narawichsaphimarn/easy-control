@@ -12,7 +12,7 @@ impl SqliteDBInfraInit for SqliteDBInfra {
             width varchar(255) NOT NULL,
             height varchar(255) NOT NULL);
 
-            CREATE TABLE IF NOT EXISTS screen_mapping_metric (
+            CREATE TABLE IF NOT EXISTS screen_mapping_matrix (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             mac_source varchar(255) NOT NULL,
             mac_target varchar(255) NOT NULL,
