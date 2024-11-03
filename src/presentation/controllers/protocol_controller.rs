@@ -41,5 +41,8 @@ pub async fn get_machine() -> impl IntoResponse {
 }
 
 pub async fn ping(pagination: Query<Pagination>) -> impl IntoResponse {
-    (StatusCode::OK, Json(ping_ip(&*pagination.0.ip_addr).await).into_response())
+    (
+        StatusCode::OK,
+        Json(ping_ip(&*pagination.0.ip_addr).await).into_response(),
+    )
 }

@@ -5,7 +5,10 @@ use crate::shared::types::response_type::ResponseStruct;
 use crate::shared::types::system_type::System;
 use std::time::Duration;
 
-pub async fn update_screen_matrix(ip: String, request: Vec<ScreenMappingRequest>) -> Result<(), String> {
+pub async fn update_screen_matrix(
+    ip: String,
+    request: Vec<ScreenMappingRequest>,
+) -> Result<(), String> {
     let url = format!(
         "{}{}:{}{}",
         ScreenMappingMatrix::Prefix.to_string(),
@@ -15,7 +18,12 @@ pub async fn update_screen_matrix(ip: String, request: Vec<ScreenMappingRequest>
     );
     log::debug!("Create screen matrix request url : {}", url);
     let resp: Result<ResponseStruct<Vec<ScreenMappingRequest>>, String> =
-        RestClientInfrastructure::put(url, request, Duration::from_millis(ScreenMappingMatrix::Timeout as u64)).await;
+        RestClientInfrastructure::put(
+            url,
+            request,
+            Duration::from_millis(ScreenMappingMatrix::Timeout as u64),
+        )
+        .await;
     match resp {
         Ok(s) => {
             log::debug!("Create screen matrix response: {:?}", s);

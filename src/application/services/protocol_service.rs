@@ -14,7 +14,11 @@ impl ProtocolServiceApplication {
         let ips: (String, String) = get_addrs();
         log::debug!("ips  wlan : {}, lan: {}", ips.0, ips.1);
         let (select_ip, unselect_ip) = Self::select_ip(ips);
-        log::debug!("Select ip : {} | UnSelect ip: {}", select_ip.clone(), unselect_ip.clone());
+        log::debug!(
+            "Select ip : {} | UnSelect ip: {}",
+            select_ip.clone(),
+            unselect_ip.clone()
+        );
         let ip = Self::slice_ip(select_ip.clone());
         let mut ips_active = scan_network(&ip).await;
         ips_active.retain(|ip| ip != &unselect_ip);

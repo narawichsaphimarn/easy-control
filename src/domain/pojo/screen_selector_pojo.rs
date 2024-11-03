@@ -14,9 +14,7 @@ impl ScreenSelector {
     pub fn maps(rows: Vec<Row>) -> Vec<ScreenSelector> {
         let mut mappings = Vec::new();
         for row in rows {
-            mappings.push(
-                Self::map(&row)
-            )
+            mappings.push(Self::map(&row))
         }
         mappings
     }

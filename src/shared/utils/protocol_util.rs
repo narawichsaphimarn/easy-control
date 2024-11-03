@@ -27,7 +27,8 @@ pub async fn ping_ip(ip: &str) -> bool {
         None,
         None,
         None,
-    ).is_ok()
+    )
+    .is_ok()
 }
 
 #[cfg(target_os = "macos")]
@@ -78,14 +79,16 @@ pub fn get_addrs() -> (String, String) {
                 if adapter
                     .friendly_name()
                     .contains(&InterfaceDesc::Wireless.to_string())
-                    && adapter.if_type() == ipconfig::IfType::Ieee80211 && wlan_addrs.is_empty()
+                    && adapter.if_type() == ipconfig::IfType::Ieee80211
+                    && wlan_addrs.is_empty()
                 {
                     log::debug!("Wi-Fi adapter {} and IPv4 {}", adapter.friendly_name(), ip);
                     wlan_addrs = ip.to_string();
                 } else if adapter.if_type() == ipconfig::IfType::EthernetCsmacd
                     && adapter
-                    .friendly_name()
-                    .contains(&InterfaceDesc::Ethernet.to_string()) && lan_addrs.is_empty()
+                        .friendly_name()
+                        .contains(&InterfaceDesc::Ethernet.to_string())
+                    && lan_addrs.is_empty()
                 {
                     log::debug!("LAN adapter {} and IPv4 {}", adapter.friendly_name(), ip);
                     lan_addrs = ip.to_string();
@@ -107,12 +110,10 @@ pub fn get_addrs() -> (String, String) {
         for ip in i_face.clone().ips {
             if ip.is_ipv4() {
                 let (wl, et) = map_wifi_or_lan();
-                if wl.eq_ignore_ascii_case(&i_face.clone().name) && wlan_addrs.is_empty()
-                {
+                if wl.eq_ignore_ascii_case(&i_face.clone().name) && wlan_addrs.is_empty() {
                     log::debug!("Wi-Fi adapter {} and IPv4 {}", i_face.clone().name, ip);
                     wlan_addrs = ip.ip().to_string();
-                } else if et.eq_ignore_ascii_case(&i_face.clone().name) && lan_addrs.is_empty()
-                {
+                } else if et.eq_ignore_ascii_case(&i_face.clone().name) && lan_addrs.is_empty() {
                     log::debug!("LAN adapter {} and IPv4 {}", i_face.clone().name, ip);
                     lan_addrs = ip.ip().to_string();
                 }
@@ -141,7 +142,9 @@ fn map_wifi_or_lan() -> (String, String) {
             if hardware_port.eq_ignore_ascii_case(InterfaceDesc::Wireless.to_string().as_str()) {
                 log::debug!("{} is a WLAN (Wi-Fi) interface", device);
                 wlan_iface = device.to_string();
-            } else if hardware_port.eq_ignore_ascii_case(InterfaceDesc::Ethernet.to_string().as_str()) {
+            } else if hardware_port
+                .eq_ignore_ascii_case(InterfaceDesc::Ethernet.to_string().as_str())
+            {
                 log::debug!("{} is a LAN (Ethernet) interface", device);
                 lan_iface = device.to_string();
             }
@@ -161,7 +164,10 @@ fn map_wifi_or_lan() -> (String, String) {
                 let iface_name = interface.file_name().into_string().unwrap();
                 let iface_type_path = format!("{}/type", interface.path().display());
                 if Path::new(&iface_type_path).exists() {
-                    let iface_type = fs::read_to_string(iface_type_path).unwrap().trim().to_string();
+                    let iface_type = fs::read_to_string(iface_type_path)
+                        .unwrap()
+                        .trim()
+                        .to_string();
                     match iface_type.as_str() {
                         "1" => {
                             log::debug!("{} is a LAN (Ethernet) interface", iface_name);
@@ -189,7 +195,10 @@ pub fn get_mac_addr(ip_addr: String) -> String {
     for adapter in adapters {
         for ip in adapter.ip_addresses() {
             if ip.is_ipv4() && ip.to_string().eq(&ip_addr) {
-                mac = convert_option_byte_to_string_for_mac(adapter.physical_address(), &":".to_string());
+                mac = convert_option_byte_to_string_for_mac(
+                    adapter.physical_address(),
+                    &":".to_string(),
+                );
                 break;
             }
         }

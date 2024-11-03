@@ -19,7 +19,6 @@ impl fmt::Display for SystemDetail {
     }
 }
 
-
 #[derive(Debug, Clone, Copy)]
 pub enum ScreenMappingMatrix {
     Prefix,

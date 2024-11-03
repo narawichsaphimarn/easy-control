@@ -12,9 +12,7 @@ impl ScreenMappingMatrix {
     pub fn maps(rows: Vec<Row>) -> Vec<ScreenMappingMatrix> {
         let mut mappings = Vec::new();
         for row in rows {
-            mappings.push(
-                Self::map(&row)
-            )
+            mappings.push(Self::map(&row))
         }
         mappings
     }

@@ -11,7 +11,13 @@ impl ScreenSelectorRepository {
         SqliteDBInfra::execute(&SqliteDBInfra::connect()?, query)
     }
 
-    pub fn save(ip: String, mac: String, hostname: String, width: String, height: String) -> Result<Vec<ScreenSelector>, Error> {
+    pub fn save(
+        ip: String,
+        mac: String,
+        hostname: String,
+        width: String,
+        height: String,
+    ) -> Result<Vec<ScreenSelector>, Error> {
         let query = "INSERT INTO screen_selector (ip, mac, hostname, width, height) VALUES (:ip, :mac, :hostname, :width, :height);";
         let mut param = HashMap::new();
         param.insert("ip", ip);
@@ -19,25 +25,34 @@ impl ScreenSelectorRepository {
         param.insert("hostname", hostname);
         param.insert("width", width);
         param.insert("height", height);
-        Ok(SqliteDBInfra::execute_param_hashmap(&SqliteDBInfra::connect()?, query, param)?.iter().map(|r| {
-            if let Ok(row) = r {
-                ScreenSelector::map(&row)
-            } else {
-                panic!("Could not find screen selector")
-            }
-        }).collect())
+        Ok(
+            SqliteDBInfra::execute_param_hashmap(&SqliteDBInfra::connect()?, query, param)?
+                .iter()
+                .map(|r| {
+                    if let Ok(row) = r {
+                        ScreenSelector::map(&row)
+                    } else {
+                        panic!("Could not find screen selector")
+                    }
+                })
+                .collect(),
+        )
     }
-
 
     pub fn find_all() -> Result<Vec<ScreenSelector>, Error> {
         let query = "SELECT * FROM screen_selector;";
         let param = vec![];
-        Ok(SqliteDBInfra::execute_param(&SqliteDBInfra::connect()?, query, param)?.iter().map(|r| {
-            if let Ok(row) = r {
-                ScreenSelector::map(&row)
-            } else {
-                panic!("Could not find screen selector")
-            }
-        }).collect())
+        Ok(
+            SqliteDBInfra::execute_param(&SqliteDBInfra::connect()?, query, param)?
+                .iter()
+                .map(|r| {
+                    if let Ok(row) = r {
+                        ScreenSelector::map(&row)
+                    } else {
+                        panic!("Could not find screen selector")
+                    }
+                })
+                .collect(),
+        )
     }
 }

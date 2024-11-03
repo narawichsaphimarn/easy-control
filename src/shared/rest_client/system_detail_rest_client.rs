@@ -19,7 +19,8 @@ pub async fn get_system_detail(ip: String) -> Result<Option<System>, String> {
     );
     log::debug!("Get system detail request url : {}", url);
     let resp: Result<ResponseStruct<System>, String> =
-        RestClientInfrastructure::get(url, Duration::from_millis(SystemDetail::Timeout as u64)).await;
+        RestClientInfrastructure::get(url, Duration::from_millis(SystemDetail::Timeout as u64))
+            .await;
     match resp {
         Ok(s) => {
             log::debug!("Get system detail response: {:?}", s);

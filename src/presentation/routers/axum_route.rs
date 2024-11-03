@@ -4,7 +4,11 @@ use crate::presentation::controllers::{
     actuator_controller::actuator, protocol_controller::get_machine,
     system_controller::get_system_detail,
 };
-use axum::{http::StatusCode, routing::{get, post, put}, Router};
+use axum::{
+    http::StatusCode,
+    routing::{get, post, put},
+    Router,
+};
 
 async fn fallback() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not Found")

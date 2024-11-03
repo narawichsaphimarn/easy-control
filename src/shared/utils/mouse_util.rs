@@ -5,10 +5,12 @@ use winapi::um::winuser::SetCursorPos;
 #[cfg(target_os = "windows")]
 use winapi::{
     shared::windef::{POINT, RECT},
-    um::winuser::{
-        ClipCursor, GetCursorPos,
-        ShowCursor,
-    },
+    um::winuser::{ClipCursor, GetCursorPos, ShowCursor},
+};
+#[cfg(target_os = "windows")]
+use windows::Win32::{
+    Foundation::HINSTANCE,
+    Graphics::Gdi::{LoadImageW, IMAGE_CURSOR},
 };
 
 #[cfg(target_os = "windows")]
@@ -17,7 +19,24 @@ pub fn get_cursor_point() -> Mouse {
     unsafe {
         GetCursorPos(&mut cursor_pos);
     }
-    Mouse { x: cursor_pos.x as f64, y: cursor_pos.y as f64 }
+    Mouse {
+        x: cursor_pos.x as f64,
+        y: cursor_pos.y as f64,
+    }
+}
+
+#[cfg(target_os = "windows")]
+pub fn change_icon() {
+    let h_cursor = unsafe {
+        LoadImageW(
+            HINSTANCE::NULL,
+            "path_to_your_cursor_file.cur",
+            IMAGE_CURSOR,
+            0,
+            0,
+            0,
+        )
+    };
 }
 
 #[cfg(target_os = "macos")]
@@ -60,23 +79,32 @@ pub fn check_position_at_edge(cursor_pos: Mouse, screen: Screen) -> Option<Posit
     }
 }
 
-
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 pub fn revere_mouse_position(edge: PositionAtEdge, screen: Screen, cursor_pos: Mouse) {
     match edge {
-        PositionAtEdge::Top => { move_cursor(cursor_pos.x as i32, (screen.height - cursor_pos.y as i32) - 1) }
-        PositionAtEdge::Bottom => { move_cursor(cursor_pos.x as i32, (cursor_pos.y as i32 - screen.height) + 1) }
-        PositionAtEdge::Left => { move_cursor((screen.width - cursor_pos.x as i32) - 1, cursor_pos.y as i32) }
-        PositionAtEdge::Right => { move_cursor((screen.width - cursor_pos.x as i32) + 1, cursor_pos.y as i32) }
-        PositionAtEdge::None => { () }
+        PositionAtEdge::Top => move_cursor(
+            cursor_pos.x as i32,
+            (screen.height - cursor_pos.y as i32) - 1,
+        ),
+        PositionAtEdge::Bottom => move_cursor(
+            cursor_pos.x as i32,
+            (cursor_pos.y as i32 - screen.height) + 1,
+        ),
+        PositionAtEdge::Left => move_cursor(
+            (screen.width - cursor_pos.x as i32) - 1,
+            cursor_pos.y as i32,
+        ),
+        PositionAtEdge::Right => move_cursor(
+            (screen.width - cursor_pos.x as i32) + 1,
+            cursor_pos.y as i32,
+        ),
+        PositionAtEdge::None => (),
     }
 }
 
 #[cfg(target_os = "windows")]
 pub fn hidden_cursor() {
-    unsafe {
-        while ShowCursor(0) >= 0 {}
-    }
+    unsafe { while ShowCursor(0) >= 0 {} }
 }
 
 #[cfg(target_os = "windows")]
@@ -92,4 +120,3 @@ pub fn move_cursor(x: i32, y: i32) {
         SetCursorPos(x, y);
     }
 }
-

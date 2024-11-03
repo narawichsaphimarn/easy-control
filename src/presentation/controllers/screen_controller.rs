@@ -8,7 +8,9 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{extract, Json};
 
-pub async fn screen_mapping(extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>) -> impl IntoResponse {
+pub async fn screen_mapping(
+    extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>,
+) -> impl IntoResponse {
     match ScreenServiceApplication::screen_mapping_process(request).await {
         Ok(data) => {
             let resp: ResponseStruct<Vec<System>> = map_response(
@@ -34,7 +36,9 @@ pub async fn screen_mapping(extract::Json(request): extract::Json<Vec<ScreenMapp
     }
 }
 
-pub async fn screen_mapping_update(extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>) -> impl IntoResponse {
+pub async fn screen_mapping_update(
+    extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>,
+) -> impl IntoResponse {
     match ScreenServiceApplication::screen_mapping_update(request).await {
         Ok(data) => {
             let resp: ResponseStruct<Vec<System>> = map_response(

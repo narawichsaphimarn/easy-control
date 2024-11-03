@@ -18,7 +18,11 @@ impl SqliteDBInfra {
         Ok(db_conn.execute(query)?)
     }
 
-    pub fn execute_param<'a>(db_conn: &'a Connection, query: &'a str, param: Vec<String>) -> Result<Statement<'a>, Error> {
+    pub fn execute_param<'a>(
+        db_conn: &'a Connection,
+        query: &'a str,
+        param: Vec<String>,
+    ) -> Result<Statement<'a>, Error> {
         let mut statement = db_conn.prepare(query)?;
         for (index, value) in param.iter().enumerate() {
             statement.bind((index + 1, value.as_str()))?;
@@ -26,7 +30,11 @@ impl SqliteDBInfra {
         Ok(statement)
     }
 
-    pub fn execute_param_hashmap<'a>(db_conn: &'a Connection, query: &'a str, param: HashMap<&'a str, String>) -> Result<Statement<'a>, Error> {
+    pub fn execute_param_hashmap<'a>(
+        db_conn: &'a Connection,
+        query: &'a str,
+        param: HashMap<&'a str, String>,
+    ) -> Result<Statement<'a>, Error> {
         let mut statement = db_conn.prepare(query)?;
         for (key, value) in param {
             statement.bind(((":".to_owned() + key).as_str(), value.as_str()))?;

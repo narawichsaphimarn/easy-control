@@ -12,9 +12,7 @@ impl ScreenMappingRefer {
     pub fn maps(rows: Vec<Row>) -> Vec<ScreenMappingRefer> {
         let mut mappings = Vec::new();
         for row in rows {
-            mappings.push(
-                Self::map(&row)
-            )
+            mappings.push(Self::map(&row))
         }
         mappings
     }
