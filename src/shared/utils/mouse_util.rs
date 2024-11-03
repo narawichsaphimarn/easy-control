@@ -75,7 +75,7 @@ pub fn revere_mouse_position(edge: PositionAtEdge, screen: Screen, cursor_pos: M
 #[cfg(target_os = "windows")]
 pub fn hidden_cursor() {
     unsafe {
-        ShowCursor(0);
+        while ShowCursor(0) >= 0 {}
     }
 }
 

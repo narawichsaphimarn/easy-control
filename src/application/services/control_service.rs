@@ -6,7 +6,7 @@ use crate::shared::constants::screen_constant::{map_from_string, PositionAtEdge}
 use crate::shared::types::mouse_type::{Mouse, MouseEvent};
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
-use crate::shared::utils::mouse_util::{check_position_at_edge, get_cursor_point, revere_mouse_position};
+use crate::shared::utils::mouse_util::{check_position_at_edge, get_cursor_point, hidden_cursor, revere_mouse_position};
 use crate::shared::utils::screen_util::get_screen_metrics;
 use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex};
@@ -32,6 +32,7 @@ impl ControlServiceApplication {
     }
 
     pub async fn mouse_control(data_mouse_event: Arc<Mutex<MouseEvent>>, data_protocol_event: Arc<Mutex<ProtocolEvent>>) {
+        hidden_cursor();
         loop {
             let _data_mouse_event = data_mouse_event.lock().unwrap();
             let _data_protocol_event = data_protocol_event.lock().unwrap();

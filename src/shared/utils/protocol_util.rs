@@ -3,8 +3,6 @@ use crate::shared::{
     constants::protocol_constant::InterfaceDesc,
     utils::convert::byte_convert::convert_option_byte_to_string,
 };
-use futures::stream::StreamExt;
-use futures::stream::TryStreamExt;
 #[cfg(target_os = "windows")]
 use ipconfig;
 use log;

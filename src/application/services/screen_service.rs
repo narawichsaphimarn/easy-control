@@ -3,7 +3,6 @@ use crate::domain::services::screen_screen::ScreenServiceDomain;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
 use crate::shared::rest_client::screen_mapping_matrix_rest_client::update_screen_matrix;
 use crate::shared::utils::protocol_util::get_addrs;
-use futures::TryFutureExt;
 use sqlite::Error;
 
 pub struct ScreenServiceApplication;

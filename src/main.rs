@@ -14,7 +14,6 @@ use crate::infrastructure::log::log_custom::SimpleLogger;
 use crate::shared::types::mouse_type::MouseEvent;
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::utils::protocol_util::{get_addrs, get_mac_addr};
-use crate::shared::utils::screen_util::get_screen_metrics;
 use log::LevelFilter;
 use std::sync::{Arc, Mutex};
 
@@ -28,9 +27,9 @@ async fn main() {
     let data_protocol_event = Arc::new(Mutex::new(ProtocolEvent { mac: get_mac_addr(select_ip.clone()), ip: select_ip, edge: String::new() }));
     init();
     tokio::spawn(start());
-    tokio::spawn(ControlServiceApplication::mouse_event(Arc::clone(&data_mouse_event)));
-    tokio::spawn(ControlServiceApplication::mouse_control(Arc::clone(&data_mouse_event), Arc::clone(&data_protocol_event)));
-    tokio::spawn(ControlServiceApplication::screen_event(Arc::clone(&data_mouse_event), Arc::clone(&data_protocol_event)));
+    tokio::task::spawn(ControlServiceApplication::mouse_event(Arc::clone(&data_mouse_event)));
+    tokio::task::spawn(ControlServiceApplication::mouse_control(Arc::clone(&data_mouse_event), Arc::clone(&data_protocol_event)));
+    tokio::task::spawn(ControlServiceApplication::screen_event(Arc::clone(&data_mouse_event), Arc::clone(&data_protocol_event)));
     tokio::signal::ctrl_c().await.unwrap();
 }
 
