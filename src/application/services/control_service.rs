@@ -64,10 +64,13 @@ impl ControlServiceApplication {
                         height: _data_protocol_event.target_height,
                     }
                 );
-                sent_event(_data_protocol_event.ip.clone(), models::mouse_event_model::MouseEvent {
-                    event: 1,
-                    mouse: mouse,
-                }).await;
+                let _ = sent_event(
+                    _data_protocol_event.ip.clone(),
+                    models::mouse_event_model::MouseEvent {
+                        event: 1,
+                        mouse,
+                    }
+                );
             }
         }
     }
