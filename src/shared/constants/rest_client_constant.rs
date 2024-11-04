@@ -37,3 +37,22 @@ impl fmt::Display for ScreenMappingMatrix {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum MouseEvent {
+    Prefix,
+    Path,
+    Port = 3000,
+    Timeout = 6000,
+}
+
+impl fmt::Display for MouseEvent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MouseEvent::Path => write!(f, "/api/v1/mouse/event"),
+            MouseEvent::Port => write!(f, ""),
+            MouseEvent::Timeout => write!(f, ""),
+            MouseEvent::Prefix => write!(f, "http://"),
+        }
+    }
+}

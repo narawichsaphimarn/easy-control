@@ -8,25 +8,22 @@ use sqlite::Error;
 pub struct ScreenServiceApplication;
 impl ScreenServiceApplication {
     pub async fn screen_mapping_update(request: Vec<ScreenMappingRequest>) -> Result<(), String> {
-        ScreenServiceDomain::screen_select(request.clone())
-            .await
-            .expect(
-                "Update screen select \
-        error",
-            );
-        ScreenServiceDomain::screen_mapping_metric(request)
-            .await
-            .expect(
-                "Update screen mapping \
-        matrix error",
-            );
+        ScreenServiceDomain::screen_select(request.clone()).await.expect(
+            "Update screen select \
+        error"
+        );
+        ScreenServiceDomain::screen_mapping_metric(request).await.expect(
+            "Update screen mapping \
+        matrix error"
+        );
         Ok(())
     }
 
     pub async fn screen_mapping_process(request: Vec<ScreenMappingRequest>) -> Result<(), String> {
         let screen_select = tokio::task::spawn(ScreenServiceDomain::screen_select(request.clone()));
-        let screen_mapping_metric =
-            tokio::task::spawn(ScreenServiceDomain::screen_mapping_metric(request.clone()));
+        let screen_mapping_metric = tokio::task::spawn(
+            ScreenServiceDomain::screen_mapping_metric(request.clone())
+        );
         let update_screen_matrix = tokio::task::spawn(Self::update_matrix_inside_network(request));
         for x in [screen_select, screen_mapping_metric, update_screen_matrix] {
             let join = x.await;
@@ -36,7 +33,7 @@ impl ScreenServiceApplication {
     }
 
     pub async fn update_matrix_inside_network(
-        request: Vec<ScreenMappingRequest>,
+        request: Vec<ScreenMappingRequest>
     ) -> Result<(), Error> {
         let ips: (String, String) = get_addrs();
         log::debug!("ips  wlan : {}, lan: {}", ips.0, ips.1);

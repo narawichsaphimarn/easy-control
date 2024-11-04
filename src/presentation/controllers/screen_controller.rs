@@ -6,18 +6,18 @@ use crate::shared::types::system_type::System;
 use crate::shared::utils::mapping::response_mapping::map_response;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::{extract, Json};
+use axum::{ extract, Json };
 
-pub async fn screen_mapping(
-    extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>,
-) -> impl IntoResponse {
+pub async fn screen_mapping(extract::Json(
+    request,
+): extract::Json<Vec<ScreenMappingRequest>>) -> impl IntoResponse {
     match ScreenServiceApplication::screen_mapping_process(request).await {
-        Ok(data) => {
+        Ok(_) => {
             let resp: ResponseStruct<Vec<System>> = map_response(
                 ResponseMessage::Ok as u32,
                 ResponseMessage::Ok.to_string(),
                 None,
-                None,
+                None
             );
             (StatusCode::OK, Json(resp).into_response())
         }
@@ -26,26 +26,23 @@ pub async fn screen_mapping(
                 ResponseMessage::Err as u32,
                 ResponseMessage::Err.to_string(),
                 Some(s),
-                None,
+                None
             );
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(resp).into_response(),
-            )
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(resp).into_response())
         }
     }
 }
 
-pub async fn screen_mapping_update(
-    extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>,
-) -> impl IntoResponse {
+pub async fn screen_mapping_update(extract::Json(
+    request,
+): extract::Json<Vec<ScreenMappingRequest>>) -> impl IntoResponse {
     match ScreenServiceApplication::screen_mapping_update(request).await {
         Ok(data) => {
             let resp: ResponseStruct<Vec<System>> = map_response(
                 ResponseMessage::Ok as u32,
                 ResponseMessage::Ok.to_string(),
                 None,
-                None,
+                None
             );
             (StatusCode::OK, Json(resp).into_response())
         }
@@ -54,12 +51,9 @@ pub async fn screen_mapping_update(
                 ResponseMessage::Err as u32,
                 ResponseMessage::Err.to_string(),
                 Some(s),
-                None,
+                None
             );
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(resp).into_response(),
-            )
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(resp).into_response())
         }
     }
 }
