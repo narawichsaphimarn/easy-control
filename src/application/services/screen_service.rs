@@ -1,26 +1,35 @@
 use crate::application::services::protocol_service::ProtocolServiceApplication;
-use crate::domain::services::screen_screen::ScreenServiceDomain;
+use crate::domain::services::screen_service::ScreenServiceDomain;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
 use crate::shared::rest_client::screen_mapping_matrix_rest_client::update_screen_matrix;
 use crate::shared::utils::protocol_util::get_addrs;
 use sqlite::Error;
+use crate::infrastructure::thread_async::sync_barrier::SyncBarrier;
 
 pub struct ScreenServiceApplication;
 impl ScreenServiceApplication {
     pub async fn screen_mapping_update(request: Vec<ScreenMappingRequest>) -> Result<(), String> {
-        let screen_select = tokio::task::spawn(ScreenServiceDomain::screen_select(request.clone()));
-        let screen_mapping_metric = tokio::task::spawn(ScreenServiceDomain::screen_mapping_metric(request));
-        let _ = tokio::join!(screen_select, screen_mapping_metric);
+        let barrier = SyncBarrier::new(1);
+        let barrier_clone = barrier.barrier.clone();
+        let task = tokio::spawn(async move {
+            let _ = ScreenServiceDomain::screen_select(request.clone()).await;
+            barrier_clone.wait().await;
+            let _ = ScreenServiceDomain::screen_mapping_metric(request.clone()).await;
+        });
+        let _ = tokio::join!(task);
         Ok(())
     }
 
     pub async fn screen_mapping_process(request: Vec<ScreenMappingRequest>) -> Result<(), String> {
-        let screen_select = tokio::task::spawn(ScreenServiceDomain::screen_select(request.clone()));
-        let screen_mapping_metric = tokio::task::spawn(
-            ScreenServiceDomain::screen_mapping_metric(request.clone())
-        );
-        let update_screen_matrix = tokio::task::spawn(Self::update_matrix_inside_network(request));
-        let _ = tokio::join!(screen_select, screen_mapping_metric, update_screen_matrix);
+        let barrier = SyncBarrier::new(1);
+        let barrier_clone = barrier.barrier.clone();
+        let task = tokio::spawn(async move {
+            let _ = ScreenServiceDomain::screen_select(request.clone()).await;
+            let _ = ScreenServiceDomain::screen_mapping_metric(request.clone()).await;
+            barrier_clone.wait().await;
+            let _ = Self::update_matrix_inside_network(request).await;
+        });
+        let _ = tokio::join!(task);
         Ok(())
     }
 
@@ -37,8 +46,10 @@ impl ScreenServiceApplication {
             let y = tokio::task::spawn(update_screen_matrix(x.machine.ip, request.clone()));
             join_handlers.push(y);
         }
-        for join_handler in join_handlers {
-            let _ = join_handler.await;
+        for handle in join_handlers {
+            if let Err(e) = handle.await {
+                log::error!("Task failed with error: {}", e);
+            }
         }
         Ok(())
     }
