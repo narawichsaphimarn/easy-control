@@ -20,7 +20,7 @@ use std::sync::{ Arc, Mutex };
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() {
     let ips: (String, String) = get_addrs();
     let (select_ip, _) = ProtocolServiceApplication::select_ip(ips);
@@ -46,20 +46,20 @@ async fn main() {
     let mouse_switch = Arc::new(Mutex::new(false));
     init();
     tokio::spawn(start());
-    tokio::task::spawn(ControlServiceApplication::mouse_event(Arc::clone(&data_mouse_event)));
-    tokio::task::spawn(
-        ControlServiceApplication::mouse_control(
-            Arc::clone(&data_mouse_event),
-            Arc::clone(&data_protocol_event)
-        )
-    );
-    tokio::task::spawn(
-        ControlServiceApplication::screen_event(
-            Arc::clone(&data_mouse_event),
-            Arc::clone(&data_protocol_event),
-            Arc::clone(&mouse_switch)
-        )
-    );
+    // tokio::task::spawn(ControlServiceApplication::mouse_event(Arc::clone(&data_mouse_event)));
+    // tokio::task::spawn(
+    //     ControlServiceApplication::mouse_control(
+    //         Arc::clone(&data_mouse_event),
+    //         Arc::clone(&data_protocol_event)
+    //     )
+    // );
+    // tokio::task::spawn(
+    //     ControlServiceApplication::screen_event(
+    //         Arc::clone(&data_mouse_event),
+    //         Arc::clone(&data_protocol_event),
+    //         Arc::clone(&mouse_switch)
+    //     )
+    // );
     tokio::signal::ctrl_c().await.unwrap();
 }
 

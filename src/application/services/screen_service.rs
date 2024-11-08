@@ -8,14 +8,9 @@ use sqlite::Error;
 pub struct ScreenServiceApplication;
 impl ScreenServiceApplication {
     pub async fn screen_mapping_update(request: Vec<ScreenMappingRequest>) -> Result<(), String> {
-        ScreenServiceDomain::screen_select(request.clone()).await.expect(
-            "Update screen select \
-        error"
-        );
-        ScreenServiceDomain::screen_mapping_metric(request).await.expect(
-            "Update screen mapping \
-        matrix error"
-        );
+        let screen_select = tokio::task::spawn(ScreenServiceDomain::screen_select(request.clone()));
+        let screen_mapping_metric = tokio::task::spawn(ScreenServiceDomain::screen_mapping_metric(request));
+        let _ = tokio::join!(screen_select, screen_mapping_metric);
         Ok(())
     }
 
@@ -25,10 +20,7 @@ impl ScreenServiceApplication {
             ScreenServiceDomain::screen_mapping_metric(request.clone())
         );
         let update_screen_matrix = tokio::task::spawn(Self::update_matrix_inside_network(request));
-        for x in [screen_select, screen_mapping_metric, update_screen_matrix] {
-            let join = x.await;
-            let _ = join.map_err(|e| e.to_string())?;
-        }
+        let _ = tokio::join!(screen_select, screen_mapping_metric, update_screen_matrix);
         Ok(())
     }
 

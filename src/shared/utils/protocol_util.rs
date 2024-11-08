@@ -13,9 +13,10 @@ use serde::de::Unexpected::{Option, Str};
 use std::error::Error;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
-use std::thread;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::process::Command;
+use tokio::sync::{mpsc, Semaphore};
 use tokio::task;
 
 #[cfg(any(target_os = "windows", target_os = "linux"))]
@@ -28,40 +29,49 @@ pub async fn ping_ip(ip: &str) -> bool {
         None,
         None,
     )
-    .is_ok()
+        .is_ok()
 }
 
 #[cfg(target_os = "macos")]
 pub async fn ping_ip(ip: &str) -> bool {
-    let output = Command::new("ping")
+    let mut output = Command::new("ping")
         .arg("-c 1")
         .arg(ip)
-        .output()
+        .spawn()
         .expect("Failed to execute ping");
-    output.status.success()
+    match output.wait().await {
+        Ok(r) => { r.success() }
+        Err(e) => {
+            log::error!("Failed to ping: {}", e);
+            false
+        }
+    }
 }
 
 pub async fn scan_network(base_ip: &str) -> Vec<String> {
-    let mut ips_act: Vec<String> = Vec::new();
-    let mut tasks = Vec::new();
-
+    let semaphore = Arc::new(Semaphore::new(100));
+    let base_ip = base_ip.to_string();
+    let mut jhs = Vec::with_capacity(255);
     for i in 2..=255 {
-        let base_ip = base_ip.to_string();
         let ip = format!("{}.{}", base_ip, i);
         log::debug!("Start ping IP: {}", ip);
-        let task = task::spawn(async move {
-            if ping_ip(&ip).await {
-                log::debug!("Active IP: {}", ip);
+        let _semaphore = semaphore.clone();
+        let jh = task::spawn(async move {
+            let permit = _semaphore.acquire_owned().await.unwrap();
+            let status = ping_ip(&ip).await;
+            drop(permit);
+            if status {
                 Some(ip)
             } else {
                 None
             }
         });
-        tasks.push(task);
+        jhs.push(jh);
     }
-    for task in tasks {
-        if let Ok(Some(active_ip)) = task.await {
-            ips_act.push(active_ip);
+    let mut ips_act: Vec<String> = Vec::new();
+    for jh in jhs {
+        if let Some(result) = jh.await.unwrap() {
+            ips_act.push(result);
         }
     }
     ips_act
@@ -86,8 +96,8 @@ pub fn get_addrs() -> (String, String) {
                     wlan_addrs = ip.to_string();
                 } else if adapter.if_type() == ipconfig::IfType::EthernetCsmacd
                     && adapter
-                        .friendly_name()
-                        .contains(&InterfaceDesc::Ethernet.to_string())
+                    .friendly_name()
+                    .contains(&InterfaceDesc::Ethernet.to_string())
                     && lan_addrs.is_empty()
                 {
                     log::debug!("LAN adapter {} and IPv4 {}", adapter.friendly_name(), ip);
