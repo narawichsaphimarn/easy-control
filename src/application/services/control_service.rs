@@ -1,154 +1,255 @@
-use crate::domain::pojo::screen_mapping_matrix_pojo::ScreenMappingMatrix;
 use crate::domain::repositories::screen_mapping_matrix_repository::ScreenMappingMetricRepository;
 use crate::domain::repositories::screen_selector_repository::ScreenSelectorRepository;
-use crate::presentation::models;
 use crate::shared::constants::screen_constant::map_from_string;
-use crate::shared::rest_client::mouse_event_rest_client::sent_event;
 use crate::shared::types::mouse_type::{ Mouse, MouseEvent };
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
 use crate::shared::utils::mouse_util::{
     check_position_at_edge,
     get_cursor_point,
-    mouse_different_pointer,
     revere_mouse_position,
 };
+use crate::shared::utils::protocol_util::{ get_addrs, get_mac_addr };
 use crate::shared::utils::screen_util::get_screen_metrics;
-use std::sync::{ Arc, Mutex };
+use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
+use tokio::sync::watch::{ Receiver, Sender };
+use tokio::sync::{ watch, Mutex, MutexGuard };
 
-pub struct ControlServiceApplication;
+use super::protocol_service::ProtocolServiceApplication;
 
-impl ControlServiceApplication {
-    pub async fn mouse_event(data_mouse_event: Arc<Mutex<MouseEvent>>) {
-        loop {
-            let current_point = get_cursor_point();
-            let current_screen = get_screen_metrics();
-            let current_edge = check_position_at_edge(current_point, current_screen);
-            let mut data = data_mouse_event.lock().unwrap();
-            let new_data = MouseEvent {
-                x: current_point.x,
-                y: current_point.y,
-                edge: current_edge.unwrap().to_string(),
-            };
-            *data = new_data;
-        }
-    }
+#[derive(Debug, Clone)]
+pub struct MouseEventControlServiceApplication {
+    mouse_event_tx: Sender<MouseEvent>,
+    mouse_event_rx: Receiver<MouseEvent>,
+    protocol_event_tx: Sender<ProtocolEvent>,
+    protocol_event_rx: Receiver<ProtocolEvent>,
+    protocol_mutex: Arc<Mutex<ProtocolEvent>>,
+    switch: Arc<Mutex<bool>>,
+}
 
-    pub async fn mouse_control(
-        data_mouse_event: Arc<Mutex<MouseEvent>>,
-        data_protocol_event: Arc<Mutex<ProtocolEvent>>
-    ) -> Result<(), String> {
-        let current_mac = data_protocol_event.lock().unwrap().mac.clone();
-        loop {
-            let _data_protocol_event = data_protocol_event.lock().unwrap();
-            if current_mac != _data_protocol_event.mac {
-                log::debug!(
-                    "current_mac {} | _data_protocol_event.mac {}",
-                    current_mac,
-                    _data_protocol_event.mac
-                );
-                let _data_mouse_event = data_mouse_event.lock().unwrap();
-                let mouse = mouse_different_pointer(
-                    &(Mouse {
-                        x: _data_mouse_event.x,
-                        y: _data_mouse_event.y,
-                    }),
-                    Screen {
-                        width: _data_protocol_event.source_width,
-                        height: _data_protocol_event.source_height,
-                    },
-                    Screen {
-                        width: _data_protocol_event.target_width,
-                        height: _data_protocol_event.target_height,
-                    }
-                );
-                let _ = sent_event(
-                    _data_protocol_event.ip.clone(),
-                    models::mouse_event_model::MouseEvent {
-                        event: 1,
-                        mouse,
-                    }
-                );
-            }
-        }
-    }
-
-    pub async fn screen_event(
-        data_mouse_event: Arc<Mutex<MouseEvent>>,
-        data_protocol_event: Arc<Mutex<ProtocolEvent>>,
-        mouse_switch: Arc<Mutex<bool>>
-    ) -> Result<(), String> {
-        let s_matrix: Vec<ScreenMappingMatrix> = ScreenMappingMetricRepository::find_all().map_err(
-            |e| e.to_string()
-        )?;
-        let s_select = ScreenSelectorRepository::find_all().map_err(|e| e.to_string())?;
+impl MouseEventControlServiceApplication {
+    pub fn new() -> Self {
+        let (mouse_event_tx, mouse_event_rx) = watch::channel(MouseEvent {
+            x: 0.0,
+            y: 0.0,
+            edge: String::new(),
+        });
+        let ips: (String, String) = get_addrs();
+        let (select_ip, _) = ProtocolServiceApplication::select_ip(ips);
         let screen = get_screen_metrics();
-        let mut protocol_event: Vec<ProtocolEvent> = Vec::new();
-        loop {
-            let mut _mouse_switch = mouse_switch.lock().unwrap();
-            loop {
-                if *_mouse_switch == false {
-                    let _data_mouse_event = data_mouse_event.lock().unwrap();
-                    let mut _data_protocol_event = data_protocol_event.lock().unwrap();
-                    if
-                        !_data_mouse_event.edge.eq_ignore_ascii_case("NONE") &&
-                        !_data_mouse_event.edge.is_empty()
-                    {
-                        let s_matrix_match = s_matrix
-                            .iter()
-                            .find(|x| {
-                                x.mac_source.eq_ignore_ascii_case(&_data_protocol_event.mac) &&
-                                    x.edge.eq_ignore_ascii_case(&_data_mouse_event.edge)
-                            });
-                        if let Some(s_matrix_match) = s_matrix_match {
-                            let s_select_match = s_select
-                                .iter()
-                                .find(|x| x.mac.eq_ignore_ascii_case(&s_matrix_match.mac_target));
-                            if let Some(s_select_match) = s_select_match {
-                                log::debug!("Before {:?}", _data_protocol_event);
-                                let x = ProtocolEvent {
-                                    mac: s_select_match.mac.clone(),
-                                    ip: s_select_match.ip.to_owned(),
-                                    edge: s_matrix_match.edge.to_string(),
-                                    source_width: screen.width,
-                                    source_height: screen.height,
-                                    target_width: s_select_match.width.parse::<i32>().unwrap(),
-                                    target_height: s_select_match.height.parse::<i32>().unwrap(),
-                                };
-                                protocol_event.push(x);
-                                *_mouse_switch = true;
-                                break;
-                            }
-                        }
-                    }
-                } else {
-                    sleep(Duration::from_millis(3));
-                    *_mouse_switch = false;
-                }
-            }
-            if *_mouse_switch == true {
-                let _data_mouse_event = data_mouse_event.lock().unwrap();
-                let mut _data_protocol_event = data_protocol_event.lock().unwrap();
+        let protocol_event = ProtocolEvent {
+            mac: get_mac_addr(select_ip.clone()),
+            ip: select_ip,
+            edge: String::new(),
+            source_width: screen.width,
+            source_height: screen.height,
+            target_width: 0,
+            target_height: 0,
+            x: 0.0,
+            y: 0.0,
+        };
+        let (protocol_event_tx, protocol_event_rx) = watch::channel(protocol_event.clone());
+        let protocol_mutex = Arc::new(Mutex::new(protocol_event));
+        MouseEventControlServiceApplication {
+            mouse_event_tx,
+            mouse_event_rx,
+            protocol_event_tx,
+            protocol_event_rx,
+            protocol_mutex,
+            switch: Arc::new(Mutex::new(false)),
+        }
+    }
+
+    pub fn get_mouse_event_rx(&self) -> Receiver<MouseEvent> {
+        self.mouse_event_rx.clone()
+    }
+
+    pub fn get_protocol_event_rx(&self) -> Receiver<ProtocolEvent> {
+        self.protocol_event_rx.clone()
+    }
+
+    pub fn get_protocol_event_tx(&self) -> Sender<ProtocolEvent> {
+        self.protocol_event_tx.clone()
+    }
+
+    pub fn get_protocol_mutex(&self) -> Arc<Mutex<ProtocolEvent>> {
+        Arc::clone(&self.protocol_mutex)
+    }
+
+    pub async fn get_protocol_event(&self) -> MutexGuard<ProtocolEvent> {
+        let value = self.protocol_mutex.lock().await;
+        value
+    }
+
+    pub fn send_protocol_event(&self, event: ProtocolEvent) {
+        let _ = self.protocol_event_tx.send(event);
+    }
+
+    pub async fn update_protocol_event_mutex(&self, event: ProtocolEvent) {
+        let x: Arc<Mutex<ProtocolEvent>> = Arc::clone(&self.protocol_mutex);
+        let mut value = x.lock().await;
+        *value = event.clone();
+    }
+
+    pub async fn switch(&self) {
+        let mut status = self.switch.lock().await;
+        *status = !status.clone();
+    }
+
+    pub async fn wait_switch_cursor(self: Arc<Self>) {
+        let mut rx = self.get_protocol_event_rx();
+        tokio::task::spawn(async move {
+            while rx.changed().await.is_ok() {
+                let value = rx.borrow().clone();
                 revere_mouse_position(
-                    map_from_string(_data_mouse_event.edge.to_string()),
-                    Screen {
-                        width: screen.width,
-                        height: screen.height,
-                    },
-                    Mouse {
-                        x: _data_mouse_event.x,
-                        y: _data_mouse_event.y,
-                    }
+                    map_from_string(value.edge),
+                    Screen { width: value.source_width, height: value.source_height },
+                    Mouse { x: value.x, y: value.y }
                 );
-                log::debug!("protocol_event {:?} _mouse_switch {}", protocol_event, _mouse_switch);
-                *_data_protocol_event = protocol_event.get(0).unwrap().clone();
-                protocol_event.clear();
-                log::debug!("After {:?}", _data_protocol_event);
-            } else {
-                protocol_event.clear();
+            }
+        });
+    }
+
+    pub async fn wait_update_protocol_event(self: Arc<Self>) {
+        let mut rx = self.get_protocol_event_rx();
+        let protocol_mutex = Arc::clone(&self.protocol_mutex);
+        tokio::task::spawn(async move {
+            while rx.changed().await.is_ok() {
+                let mut protocol_guard = protocol_mutex.lock().await;
+                let value = rx.borrow().clone();
+                *protocol_guard = value.clone();
+                log::debug!("Now screen IP:{}, MAC:{}", value.ip, value.mac);
+            }
+        });
+    }
+
+    pub async fn run(self: Arc<Self>) {
+        let mut protocol_event_rx = self.protocol_event_rx.clone();
+        let current_screen = get_screen_metrics();
+        let switch = Arc::clone(&self.switch);
+        let protocol_mutex = Arc::clone(&self.protocol_mutex);
+        loop {
+            let mut switch = switch.lock().await;
+            tokio::select! {
+                _ = protocol_event_rx.changed() => {
+                    *switch = true;
+                    let mut protocol_guard = protocol_mutex.lock().await;
+                    let value = protocol_event_rx.borrow().clone();
+                    *protocol_guard = value.clone();
+                    sleep(Duration::from_millis(100));
+                    *switch = false;
+                    log::debug!("Now screen IP:{}, MAC:{}", value.ip, value.mac);
+                }
+                _ = tokio::time::sleep(Duration::from_millis(1)), if !switch.clone() => {
+                    let current_point = get_cursor_point();
+                    let current_edge = check_position_at_edge(current_point, current_screen);
+                    let _ = self.mouse_event_tx.send(MouseEvent { x: current_point.x, y: current_point.y, edge: current_edge.unwrap().to_string() });
+                }
             }
         }
     }
 }
+
+pub struct ScreenEventControlServiceApplication;
+
+impl ScreenEventControlServiceApplication {
+    pub async fn run(mouse_event: Arc<MouseEventControlServiceApplication>) {
+        let s_matrix = if
+            let Ok(result) = ScreenMappingMetricRepository::find_all().map_err(|e| e.to_string())
+        {
+            result
+        } else {
+            Vec::new()
+        };
+        let s_select = if
+            let Ok(result) = ScreenSelectorRepository::find_all().map_err(|e| e.to_string())
+        {
+            result
+        } else {
+            Vec::new()
+        };
+        let screen = get_screen_metrics();
+        let mut mouse_event_rx = mouse_event.get_mouse_event_rx();
+        while mouse_event_rx.changed().await.is_ok() {
+            let data_mouse_event = mouse_event_rx.borrow().clone();
+            let data_protocol_event = mouse_event.get_protocol_event().await;
+            if
+                !data_mouse_event.edge.eq_ignore_ascii_case("NONE") &&
+                !data_mouse_event.edge.is_empty()
+            {
+                let s_matrix_match = s_matrix
+                    .iter()
+                    .find(|x| {
+                        x.mac_source.eq_ignore_ascii_case(&data_protocol_event.mac) &&
+                            x.edge.eq_ignore_ascii_case(&data_mouse_event.edge)
+                    });
+                if let Some(s_matrix_match) = s_matrix_match {
+                    let s_select_match = s_select
+                        .iter()
+                        .find(|x| x.mac.eq_ignore_ascii_case(&s_matrix_match.mac_target));
+                    if let Some(s_select_match) = s_select_match {
+                        let protocol_event_map = ProtocolEvent {
+                            mac: s_select_match.mac.clone(),
+                            ip: s_select_match.ip.to_owned(),
+                            edge: s_matrix_match.edge.to_string(),
+                            source_width: screen.width,
+                            source_height: screen.height,
+                            target_width: s_select_match.width.parse::<i32>().unwrap(),
+                            target_height: s_select_match.height.parse::<i32>().unwrap(),
+                            x: data_mouse_event.x,
+                            y: data_mouse_event.y,
+                        };
+                        revere_mouse_position(
+                            map_from_string(s_matrix_match.edge.to_string()),
+                            Screen { width: screen.width, height: screen.height },
+                            Mouse { x: data_mouse_event.x, y: data_mouse_event.y }
+                        );
+                        mouse_event.send_protocol_event(protocol_event_map);
+                        sleep(Duration::from_millis(200));
+                    }
+                }
+            }
+        }
+    }
+}
+
+//     pub async fn mouse_control(
+//         data_mouse_event: Arc<Mutex<MouseEvent>>,
+//         data_protocol_event: Arc<Mutex<ProtocolEvent>>
+//     ) -> Result<(), String> {
+//         let current_mac = data_protocol_event.lock().unwrap().mac.clone();
+//         loop {
+//             let _data_protocol_event = data_protocol_event.lock().unwrap();
+//             if current_mac != _data_protocol_event.mac {
+//                 log::debug!(
+//                     "current_mac {} | _data_protocol_event.mac {}",
+//                     current_mac,
+//                     _data_protocol_event.mac
+//                 );
+//                 let _data_mouse_event = data_mouse_event.lock().unwrap();
+//                 let mouse = mouse_different_pointer(
+//                     &(Mouse {
+//                         x: _data_mouse_event.x,
+//                         y: _data_mouse_event.y,
+//                     }),
+//                     Screen {
+//                         width: _data_protocol_event.source_width,
+//                         height: _data_protocol_event.source_height,
+//                     },
+//                     Screen {
+//                         width: _data_protocol_event.target_width,
+//                         height: _data_protocol_event.target_height,
+//                     }
+//                 );
+//                 let _ = sent_event(
+//                     _data_protocol_event.ip.clone(),
+//                     models::mouse_event_model::MouseEvent {
+//                         event: 1,
+//                         mouse,
+//                     }
+//                 );
+//             }
+//         }
+//     }

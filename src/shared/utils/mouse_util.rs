@@ -66,13 +66,13 @@ pub fn check_position_at_edge(cursor_pos: Mouse, screen: Screen) -> Option<Posit
 pub fn revere_mouse_position(edge: PositionAtEdge, screen: Screen, cursor_pos: Mouse) {
     match edge {
         PositionAtEdge::Top =>
-            move_cursor(cursor_pos.x as i32, screen.height - (cursor_pos.y as i32) - 1),
+            move_cursor(cursor_pos.x as i32, screen.height - (cursor_pos.y as i32) - 5),
         PositionAtEdge::Bottom =>
-            move_cursor(cursor_pos.x as i32, (cursor_pos.y as i32) - screen.height + 1),
+            move_cursor(cursor_pos.x as i32, (cursor_pos.y as i32) - screen.height + 5),
         PositionAtEdge::Left =>
-            move_cursor(screen.width - (cursor_pos.x as i32) - 1, cursor_pos.y as i32),
+            move_cursor(screen.width - (cursor_pos.x as i32) - 5, cursor_pos.y as i32),
         PositionAtEdge::Right =>
-            move_cursor(screen.width - (cursor_pos.x as i32) + 1, cursor_pos.y as i32),
+            move_cursor(screen.width - (cursor_pos.x as i32) + 5, cursor_pos.y as i32),
         PositionAtEdge::None => (),
     }
 }
