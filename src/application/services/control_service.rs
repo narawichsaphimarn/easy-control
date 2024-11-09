@@ -7,7 +7,10 @@ use crate::shared::types::screen_type::Screen;
 use crate::shared::utils::mouse_util::{
     check_position_at_edge,
     get_cursor_point,
+    get_revere_mouse_position,
+    lock_cursor,
     revere_mouse_position,
+    unlock_cursor,
 };
 use crate::shared::utils::protocol_util::{ get_addrs, get_mac_addr };
 use crate::shared::utils::screen_util::get_screen_metrics;
@@ -15,7 +18,7 @@ use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 use tokio::sync::watch::{ Receiver, Sender };
-use tokio::sync::{ watch, Mutex, MutexGuard };
+use tokio::sync::{ mpsc, watch, Mutex, MutexGuard };
 
 use super::protocol_service::ProtocolServiceApplication;
 
@@ -87,17 +90,6 @@ impl MouseEventControlServiceApplication {
         let _ = self.protocol_event_tx.send(event);
     }
 
-    pub async fn update_protocol_event_mutex(&self, event: ProtocolEvent) {
-        let x: Arc<Mutex<ProtocolEvent>> = Arc::clone(&self.protocol_mutex);
-        let mut value = x.lock().await;
-        *value = event.clone();
-    }
-
-    pub async fn switch(&self) {
-        let mut status = self.switch.lock().await;
-        *status = !status.clone();
-    }
-
     pub async fn wait_switch_cursor(self: Arc<Self>) {
         let mut rx = self.get_protocol_event_rx();
         tokio::task::spawn(async move {
@@ -152,9 +144,24 @@ impl MouseEventControlServiceApplication {
     }
 }
 
-pub struct ScreenEventControlServiceApplication;
+pub struct ScreenEventControlServiceApplication {
+    update_tx: mpsc::Sender<usize>,
+    update_rx: mpsc::Receiver<usize>,
+}
 
 impl ScreenEventControlServiceApplication {
+    pub fn new(initial_value: usize) -> Self {
+        let (update_tx, update_rx) = mpsc::channel(initial_value);
+        ScreenEventControlServiceApplication {
+            update_tx,
+            update_rx,
+        }
+    }
+
+    pub fn update_data(&self, status: usize) {
+        let _ = self.update_tx.send(status);
+    }
+
     pub async fn run(mouse_event: Arc<MouseEventControlServiceApplication>) {
         let s_matrix = if
             let Ok(result) = ScreenMappingMetricRepository::find_all().map_err(|e| e.to_string())
@@ -173,41 +180,50 @@ impl ScreenEventControlServiceApplication {
         let screen = get_screen_metrics();
         let mut mouse_event_rx = mouse_event.get_mouse_event_rx();
         while mouse_event_rx.changed().await.is_ok() {
-            let data_mouse_event = mouse_event_rx.borrow().clone();
-            let data_protocol_event = mouse_event.get_protocol_event().await;
-            if
-                !data_mouse_event.edge.eq_ignore_ascii_case("NONE") &&
-                !data_mouse_event.edge.is_empty()
-            {
-                let s_matrix_match = s_matrix
-                    .iter()
-                    .find(|x| {
-                        x.mac_source.eq_ignore_ascii_case(&data_protocol_event.mac) &&
-                            x.edge.eq_ignore_ascii_case(&data_mouse_event.edge)
-                    });
-                if let Some(s_matrix_match) = s_matrix_match {
-                    let s_select_match = s_select
-                        .iter()
-                        .find(|x| x.mac.eq_ignore_ascii_case(&s_matrix_match.mac_target));
-                    if let Some(s_select_match) = s_select_match {
-                        let protocol_event_map = ProtocolEvent {
-                            mac: s_select_match.mac.clone(),
-                            ip: s_select_match.ip.to_owned(),
-                            edge: s_matrix_match.edge.to_string(),
-                            source_width: screen.width,
-                            source_height: screen.height,
-                            target_width: s_select_match.width.parse::<i32>().unwrap(),
-                            target_height: s_select_match.height.parse::<i32>().unwrap(),
-                            x: data_mouse_event.x,
-                            y: data_mouse_event.y,
-                        };
-                        revere_mouse_position(
-                            map_from_string(s_matrix_match.edge.to_string()),
-                            Screen { width: screen.width, height: screen.height },
-                            Mouse { x: data_mouse_event.x, y: data_mouse_event.y }
-                        );
-                        mouse_event.send_protocol_event(protocol_event_map);
-                        sleep(Duration::from_millis(200));
+            tokio::select! {
+                _ = mouse_event_rx.changed() => {
+                    let data_mouse_event = mouse_event_rx.borrow().clone();
+                    let data_protocol_event = mouse_event.get_protocol_event().await;
+                    if
+                        !data_mouse_event.edge.eq_ignore_ascii_case("NONE") &&
+                        !data_mouse_event.edge.is_empty()
+                    {
+                        let s_matrix_match = s_matrix
+                            .iter()
+                            .find(|x| {
+                                x.mac_source.eq_ignore_ascii_case(&data_protocol_event.mac) &&
+                                    x.edge.eq_ignore_ascii_case(&data_mouse_event.edge)
+                            });
+                        if let Some(s_matrix_match) = s_matrix_match {
+                            let s_select_match = s_select
+                                .iter()
+                                .find(|x| x.mac.eq_ignore_ascii_case(&s_matrix_match.mac_target));
+                            if let Some(s_select_match) = s_select_match {
+                                let protocol_event_map = ProtocolEvent {
+                                    mac: s_select_match.mac.clone(),
+                                    ip: s_select_match.ip.to_owned(),
+                                    edge: s_matrix_match.edge.to_string(),
+                                    source_width: screen.width,
+                                    source_height: screen.height,
+                                    target_width: s_select_match.width.parse::<i32>().unwrap(),
+                                    target_height: s_select_match.height.parse::<i32>().unwrap(),
+                                    x: data_mouse_event.x,
+                                    y: data_mouse_event.y,
+                                };
+                                mouse_event.send_protocol_event(protocol_event_map);
+                                revere_mouse_position(
+                                    map_from_string(s_matrix_match.edge.to_string()),
+                                    Screen { width: screen.width, height: screen.height },
+                                    Mouse { x: data_mouse_event.x, y: data_mouse_event.y }
+                                );
+                                let reverse_point = get_revere_mouse_position(map_from_string(s_matrix_match.edge.to_string()),
+                                    Screen { width: screen.width, height: screen.height },
+                                    Mouse { x: data_mouse_event.x, y: data_mouse_event.y });
+                                lock_cursor(reverse_point);
+                                sleep(Duration::from_millis(50));
+                                unlock_cursor()
+                            }
+                        }
                     }
                 }
             }

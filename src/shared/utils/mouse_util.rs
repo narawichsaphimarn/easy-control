@@ -77,6 +77,21 @@ pub fn revere_mouse_position(edge: PositionAtEdge, screen: Screen, cursor_pos: M
     }
 }
 
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+pub fn get_revere_mouse_position(edge: PositionAtEdge, screen: Screen, cursor_pos: Mouse) -> Mouse {
+    match edge {
+        PositionAtEdge::Top =>
+            Mouse { x: cursor_pos.x, y: (screen.height - (cursor_pos.y as i32) - 5) as f64 },
+        PositionAtEdge::Bottom =>
+            Mouse { x: cursor_pos.x, y: ((cursor_pos.y as i32) - screen.height + 5) as f64 },
+        PositionAtEdge::Left =>
+            Mouse { x: (screen.width - (cursor_pos.x as i32) - 5) as f64, y: cursor_pos.y },
+        PositionAtEdge::Right =>
+            Mouse { x: (screen.width - (cursor_pos.x as i32) + 5) as f64, y: cursor_pos.y },
+        PositionAtEdge::None => Mouse { x: 0.0, y: 0.0 },
+    }
+}
+
 #[cfg(target_os = "windows")]
 pub fn hidden_cursor() {
     unsafe {
@@ -93,8 +108,11 @@ pub fn show_cursor() {
 
 #[cfg(target_os = "windows")]
 pub fn move_cursor(x: i32, y: i32) {
-    unsafe {
-        SetCursorPos(x, y);
+    loop {
+        let success = unsafe { SetCursorPos(x, y) != 0 };
+        if success {
+            break;
+        }
     }
 }
 

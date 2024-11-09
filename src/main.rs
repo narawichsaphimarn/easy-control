@@ -25,8 +25,6 @@ async fn main() {
 
     let mouse_event = Arc::new(MouseEventControlServiceApplication::new());
     tokio::task::spawn(ScreenEventControlServiceApplication::run(Arc::clone(&mouse_event)));
-    // tokio::task::spawn(mouse_event.clone().wait_switch_cursor());
-    // tokio::task::spawn(mouse_event.clone().wait_update_protocol_event());
     tokio::task::spawn(mouse_event.run());
     tokio::signal::ctrl_c().await.unwrap();
 }
