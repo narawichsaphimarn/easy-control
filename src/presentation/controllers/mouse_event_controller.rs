@@ -1,4 +1,7 @@
-use axum::{ extract, response::{ IntoResponse, Json } };
+use axum::{
+    extract,
+    response::{IntoResponse, Json},
+};
 use reqwest::StatusCode;
 
 use crate::{
@@ -8,7 +11,7 @@ use crate::{
 
 pub async fn mouse_event(extract::Json(request): extract::Json<MouseEvent>) -> impl IntoResponse {
     match MouseEventServiceApplication::mouse_event_process(request).await {
-        Ok(_) => { (StatusCode::OK, Json("").into_response()) }
-        Err(_) => { (StatusCode::INTERNAL_SERVER_ERROR, Json(()).into_response()) }
+        Ok(_) => (StatusCode::OK, Json("").into_response()),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(()).into_response()),
     }
 }

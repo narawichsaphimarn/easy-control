@@ -3,8 +3,8 @@ use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::screen_type::Screen;
 #[cfg(target_os = "windows")]
 use winapi::{
-    shared::windef::{ POINT, RECT },
-    um::winuser::{ ClipCursor, GetCursorPos, SetCursorPos, ShowCursor },
+    shared::windef::{POINT, RECT},
+    um::winuser::{ClipCursor, GetCursorPos, SetCursorPos, ShowCursor},
 };
 
 #[cfg(target_os = "windows")]
@@ -65,14 +65,22 @@ pub fn check_position_at_edge(cursor_pos: Mouse, screen: Screen) -> Option<Posit
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 pub fn revere_mouse_position(edge: PositionAtEdge, screen: Screen, cursor_pos: Mouse) {
     match edge {
-        PositionAtEdge::Top =>
-            move_cursor(cursor_pos.x as i32, screen.height - (cursor_pos.y as i32) - 5),
-        PositionAtEdge::Bottom =>
-            move_cursor(cursor_pos.x as i32, (cursor_pos.y as i32) - screen.height + 5),
-        PositionAtEdge::Left =>
-            move_cursor(screen.width - (cursor_pos.x as i32) - 5, cursor_pos.y as i32),
-        PositionAtEdge::Right =>
-            move_cursor(screen.width - (cursor_pos.x as i32) + 5, cursor_pos.y as i32),
+        PositionAtEdge::Top => move_cursor(
+            cursor_pos.x as i32,
+            screen.height - (cursor_pos.y as i32) - 5,
+        ),
+        PositionAtEdge::Bottom => move_cursor(
+            cursor_pos.x as i32,
+            (cursor_pos.y as i32) - screen.height + 5,
+        ),
+        PositionAtEdge::Left => move_cursor(
+            screen.width - (cursor_pos.x as i32) - 5,
+            cursor_pos.y as i32,
+        ),
+        PositionAtEdge::Right => move_cursor(
+            screen.width - (cursor_pos.x as i32) + 5,
+            cursor_pos.y as i32,
+        ),
         PositionAtEdge::None => (),
     }
 }
@@ -80,23 +88,29 @@ pub fn revere_mouse_position(edge: PositionAtEdge, screen: Screen, cursor_pos: M
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 pub fn get_revere_mouse_position(edge: PositionAtEdge, screen: Screen, cursor_pos: Mouse) -> Mouse {
     match edge {
-        PositionAtEdge::Top =>
-            Mouse { x: cursor_pos.x, y: (screen.height - (cursor_pos.y as i32) - 5) as f64 },
-        PositionAtEdge::Bottom =>
-            Mouse { x: cursor_pos.x, y: ((cursor_pos.y as i32) - screen.height + 5) as f64 },
-        PositionAtEdge::Left =>
-            Mouse { x: (screen.width - (cursor_pos.x as i32) - 5) as f64, y: cursor_pos.y },
-        PositionAtEdge::Right =>
-            Mouse { x: (screen.width - (cursor_pos.x as i32) + 5) as f64, y: cursor_pos.y },
+        PositionAtEdge::Top => Mouse {
+            x: cursor_pos.x,
+            y: (screen.height - (cursor_pos.y as i32) - 5) as f64,
+        },
+        PositionAtEdge::Bottom => Mouse {
+            x: cursor_pos.x,
+            y: ((cursor_pos.y as i32) - screen.height + 5) as f64,
+        },
+        PositionAtEdge::Left => Mouse {
+            x: (screen.width - (cursor_pos.x as i32) - 5) as f64,
+            y: cursor_pos.y,
+        },
+        PositionAtEdge::Right => Mouse {
+            x: (screen.width - (cursor_pos.x as i32) + 5) as f64,
+            y: cursor_pos.y,
+        },
         PositionAtEdge::None => Mouse { x: 0.0, y: 0.0 },
     }
 }
 
 #[cfg(target_os = "windows")]
 pub fn hidden_cursor() {
-    unsafe {
-        while ShowCursor(0) >= 0 {}
-    }
+    unsafe { while ShowCursor(0) >= 0 {} }
 }
 
 #[cfg(target_os = "windows")]
@@ -119,7 +133,7 @@ pub fn move_cursor(x: i32, y: i32) {
 pub fn mouse_different_pointer(
     current_point: &Mouse,
     source_screen: Screen,
-    target_screen: Screen
+    target_screen: Screen,
 ) -> Mouse {
     Mouse {
         x: (current_point.x * (source_screen.width as f64)) / (target_screen.width as f64),

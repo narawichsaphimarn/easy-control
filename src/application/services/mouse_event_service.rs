@@ -1,6 +1,5 @@
 use crate::{
-    presentation::models::mouse_event_model::MouseEvent,
-    shared::utils::mouse_util::move_cursor,
+    presentation::models::mouse_event_model::MouseEvent, shared::utils::mouse_util::move_cursor,
 };
 
 pub struct MouseEventServiceApplication;

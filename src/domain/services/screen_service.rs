@@ -35,10 +35,16 @@ impl ScreenServiceDomain {
                 no.to_string(),
             )? {
                 log::debug!("row_matrix {}", row_matrix.parameter_value);
-                let machines_filter_mapping = &machines_filter.clone().iter()
+                let machines_filter_mapping = &machines_filter
+                    .clone()
+                    .iter()
                     .map(|item| {
-                        (format!("{},{}", no, item.screen_no), item.clone().machine.mac)
-                    }).collect::<HashMap<String, String>>();
+                        (
+                            format!("{},{}", no, item.screen_no),
+                            item.clone().machine.mac,
+                        )
+                    })
+                    .collect::<HashMap<String, String>>();
                 machines_filter_mapping.iter().for_each(|item| {
                     log::debug!("position_group {:?}", item);
                     match ScreenMappingReferRepository::find_by_key_and_group(
@@ -46,17 +52,21 @@ impl ScreenServiceDomain {
                         item.0.to_string(),
                     ) {
                         Ok(row) => {
-                            log::debug!("position_group value {:?}",row.get(0));
+                            log::debug!("position_group value {:?}", row.get(0));
                             if let Some(row) = row.get(0) {
                                 let _ = ScreenMappingMetricRepository::save(
                                     system.machine.mac.to_string(),
                                     item.1.to_string(),
                                     row.parameter_value.to_string(),
-                                ).unwrap();
+                                )
+                                .unwrap();
                             }
                         }
                         Err(error) => {
-                            log::error!("Error ScreenMappingReferRepository::find_by_key_and_group {}", error);
+                            log::error!(
+                                "Error ScreenMappingReferRepository::find_by_key_and_group {}",
+                                error
+                            );
                         }
                     }
                 });

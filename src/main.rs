@@ -4,15 +4,14 @@ pub mod infrastructure;
 pub mod presentation;
 pub mod shared;
 
-use std::sync::Arc;
 use application::services::control_service::{
-    MouseEventControlServiceApplication,
-    ScreenEventControlServiceApplication,
+    MouseEventControlServiceApplication, ScreenEventControlServiceApplication,
 };
 use dotenvy::dotenv;
 use infrastructure::api::axum_config::start;
+use std::sync::Arc;
 
-use crate::infrastructure::database::sqlite_database::{ SqliteDBInfra, SqliteDBInfraInit };
+use crate::infrastructure::database::sqlite_database::{SqliteDBInfra, SqliteDBInfraInit};
 use crate::infrastructure::log::log_custom::SimpleLogger;
 use log::LevelFilter;
 
@@ -21,10 +20,10 @@ static LOGGER: SimpleLogger = SimpleLogger;
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() {
     init();
-    tokio::spawn(start());
-
     let mouse_event = Arc::new(MouseEventControlServiceApplication::new());
-    tokio::task::spawn(ScreenEventControlServiceApplication::run(Arc::clone(&mouse_event)));
+    let screen_event = Arc::new(ScreenEventControlServiceApplication::new());
+    tokio::task::spawn(start(Arc::clone(&screen_event)));
+    tokio::task::spawn(screen_event.run(Arc::clone(&mouse_event)));
     tokio::task::spawn(mouse_event.run());
     tokio::signal::ctrl_c().await.unwrap();
 }

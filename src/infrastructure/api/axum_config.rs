@@ -1,10 +1,15 @@
+use std::sync::Arc;
+
 use axum;
 use log;
 
-use crate::presentation::routers::axum_route::route;
+use crate::{
+    application::services::control_service::ScreenEventControlServiceApplication,
+    presentation::routers::axum_route::route,
+};
 
-pub async fn start() {
-    let app = route();
+pub async fn start(screen_event: Arc<ScreenEventControlServiceApplication>) {
+    let app = route(Arc::clone(&screen_event));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     log::debug!(
         "Listener start {}:{}",

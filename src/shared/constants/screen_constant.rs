@@ -10,11 +10,17 @@ pub enum PositionAtEdge {
 }
 
 pub fn map_from_string(edge: String) -> PositionAtEdge {
-    if PositionAtEdge::Bottom.to_string().eq_ignore_ascii_case(&edge) {
+    if PositionAtEdge::Bottom
+        .to_string()
+        .eq_ignore_ascii_case(&edge)
+    {
         PositionAtEdge::Bottom
     } else if PositionAtEdge::Left.to_string().eq_ignore_ascii_case(&edge) {
         PositionAtEdge::Left
-    } else if PositionAtEdge::Right.to_string().eq_ignore_ascii_case(&edge) {
+    } else if PositionAtEdge::Right
+        .to_string()
+        .eq_ignore_ascii_case(&edge)
+    {
         PositionAtEdge::Right
     } else if PositionAtEdge::Top.to_string().eq_ignore_ascii_case(&edge) {
         PositionAtEdge::Top

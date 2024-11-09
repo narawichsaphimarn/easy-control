@@ -1,10 +1,10 @@
 use crate::application::services::protocol_service::ProtocolServiceApplication;
 use crate::domain::services::screen_service::ScreenServiceDomain;
+use crate::infrastructure::thread_async::sync_barrier::SyncBarrier;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
 use crate::shared::rest_client::screen_mapping_matrix_rest_client::update_screen_matrix;
 use crate::shared::utils::protocol_util::get_addrs;
 use sqlite::Error;
-use crate::infrastructure::thread_async::sync_barrier::SyncBarrier;
 
 pub struct ScreenServiceApplication;
 impl ScreenServiceApplication {
@@ -34,7 +34,7 @@ impl ScreenServiceApplication {
     }
 
     pub async fn update_matrix_inside_network(
-        request: Vec<ScreenMappingRequest>
+        request: Vec<ScreenMappingRequest>,
     ) -> Result<(), Error> {
         let ips: (String, String) = get_addrs();
         log::debug!("ips  wlan : {}, lan: {}", ips.0, ips.1);

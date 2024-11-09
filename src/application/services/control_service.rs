@@ -1,24 +1,21 @@
 use crate::domain::repositories::screen_mapping_matrix_repository::ScreenMappingMetricRepository;
 use crate::domain::repositories::screen_selector_repository::ScreenSelectorRepository;
 use crate::shared::constants::screen_constant::map_from_string;
-use crate::shared::types::mouse_type::{ Mouse, MouseEvent };
+use crate::shared::types::mouse_type::{Mouse, MouseEvent};
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
 use crate::shared::utils::mouse_util::{
-    check_position_at_edge,
-    get_cursor_point,
-    get_revere_mouse_position,
-    lock_cursor,
-    revere_mouse_position,
-    unlock_cursor,
+    check_position_at_edge, get_cursor_point, get_revere_mouse_position, lock_cursor,
+    revere_mouse_position, unlock_cursor,
 };
-use crate::shared::utils::protocol_util::{ get_addrs, get_mac_addr };
+use crate::shared::utils::protocol_util::{get_addrs, get_mac_addr};
 use crate::shared::utils::screen_util::get_screen_metrics;
+use quinn::Accept;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
-use tokio::sync::watch::{ Receiver, Sender };
-use tokio::sync::{ mpsc, watch, Mutex, MutexGuard };
+use tokio::sync::watch::{Receiver, Sender};
+use tokio::sync::{mpsc, watch, Mutex, MutexGuard};
 
 use super::protocol_service::ProtocolServiceApplication;
 
@@ -33,12 +30,7 @@ pub struct MouseEventControlServiceApplication {
 }
 
 impl MouseEventControlServiceApplication {
-    pub fn new() -> Self {
-        let (mouse_event_tx, mouse_event_rx) = watch::channel(MouseEvent {
-            x: 0.0,
-            y: 0.0,
-            edge: String::new(),
-        });
+    pub fn new_protocol_event() -> ProtocolEvent {
         let ips: (String, String) = get_addrs();
         let (select_ip, _) = ProtocolServiceApplication::select_ip(ips);
         let screen = get_screen_metrics();
@@ -53,6 +45,16 @@ impl MouseEventControlServiceApplication {
             x: 0.0,
             y: 0.0,
         };
+        protocol_event
+    }
+
+    pub fn new() -> Self {
+        let (mouse_event_tx, mouse_event_rx) = watch::channel(MouseEvent {
+            x: 0.0,
+            y: 0.0,
+            edge: String::new(),
+        });
+        let protocol_event = Self::new_protocol_event();
         let (protocol_event_tx, protocol_event_rx) = watch::channel(protocol_event.clone());
         let protocol_mutex = Arc::new(Mutex::new(protocol_event));
         MouseEventControlServiceApplication {
@@ -86,6 +88,11 @@ impl MouseEventControlServiceApplication {
         value
     }
 
+    pub async fn update_protocol_event(&self, protocol_event: ProtocolEvent) {
+        let mut value = self.protocol_mutex.lock().await;
+        *value = protocol_event;
+    }
+
     pub fn send_protocol_event(&self, event: ProtocolEvent) {
         let _ = self.protocol_event_tx.send(event);
     }
@@ -97,8 +104,14 @@ impl MouseEventControlServiceApplication {
                 let value = rx.borrow().clone();
                 revere_mouse_position(
                     map_from_string(value.edge),
-                    Screen { width: value.source_width, height: value.source_height },
-                    Mouse { x: value.x, y: value.y }
+                    Screen {
+                        width: value.source_width,
+                        height: value.source_height,
+                    },
+                    Mouse {
+                        x: value.x,
+                        y: value.y,
+                    },
                 );
             }
         });
@@ -145,43 +158,47 @@ impl MouseEventControlServiceApplication {
 }
 
 pub struct ScreenEventControlServiceApplication {
-    update_tx: mpsc::Sender<usize>,
-    update_rx: mpsc::Receiver<usize>,
+    update: Arc<Mutex<bool>>,
 }
 
 impl ScreenEventControlServiceApplication {
-    pub fn new(initial_value: usize) -> Self {
-        let (update_tx, update_rx) = mpsc::channel(initial_value);
+    pub fn new() -> Self {
         ScreenEventControlServiceApplication {
-            update_tx,
-            update_rx,
+            update: Arc::new(Mutex::new(true)),
         }
     }
 
-    pub fn update_data(&self, status: usize) {
-        let _ = self.update_tx.send(status);
+    pub async fn get_update(&self) -> MutexGuard<'_, bool> {
+        let data = self.update.lock().await;
+        data
     }
 
-    pub async fn run(mouse_event: Arc<MouseEventControlServiceApplication>) {
-        let s_matrix = if
-            let Ok(result) = ScreenMappingMetricRepository::find_all().map_err(|e| e.to_string())
-        {
-            result
-        } else {
-            Vec::new()
-        };
-        let s_select = if
-            let Ok(result) = ScreenSelectorRepository::find_all().map_err(|e| e.to_string())
-        {
-            result
-        } else {
-            Vec::new()
-        };
+    pub async fn update_data(&self, status: bool) {
+        let mut data = self.update.lock().await;
+        *data = status;
+    }
+
+    pub async fn run(self: Arc<Self>, mouse_event: Arc<MouseEventControlServiceApplication>) {
+        let mut s_matrix = Vec::new();
+        let mut s_select = Vec::new();
         let screen = get_screen_metrics();
+        let mut mouse_event_rx_status = mouse_event.get_mouse_event_rx();
         let mut mouse_event_rx = mouse_event.get_mouse_event_rx();
         while mouse_event_rx.changed().await.is_ok() {
+            let mut update = self.get_update().await;
             tokio::select! {
-                _ = mouse_event_rx.changed() => {
+                _ = mouse_event_rx_status.changed(), if update.clone() => {
+                    if let Ok(result) = ScreenMappingMetricRepository::find_all() {
+                        s_matrix = result;
+                    }
+                    if let Ok(result) = ScreenSelectorRepository::find_all() {
+                        s_select = result;
+                    }
+                    let protocol_event = MouseEventControlServiceApplication::new_protocol_event();
+                    mouse_event.update_protocol_event(protocol_event).await;
+                    *update = false;
+                }
+                _ = mouse_event_rx.changed(), if !update.clone() => {
                     let data_mouse_event = mouse_event_rx.borrow().clone();
                     let data_protocol_event = mouse_event.get_protocol_event().await;
                     if
