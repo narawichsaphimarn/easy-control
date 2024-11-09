@@ -1,10 +1,6 @@
-use crate::shared::constants::screen_constant::map_from_string;
-use crate::shared::types::mouse_type::{Mouse, MouseEvent};
+use crate::shared::types::mouse_type::MouseEvent;
 use crate::shared::types::protocol_type::ProtocolEvent;
-use crate::shared::types::screen_type::Screen;
-use crate::shared::utils::mouse_util::{
-    check_position_at_edge, get_cursor_point, revere_mouse_position,
-};
+use crate::shared::utils::mouse_util::{check_position_at_edge, get_cursor_point};
 use crate::shared::utils::protocol_util::{get_addrs, get_mac_addr};
 use crate::shared::utils::screen_util::get_screen_metrics;
 use std::sync::Arc;
@@ -93,60 +89,41 @@ impl MouseEventControlServiceApplication {
         let _ = self.protocol_event_tx.send(event);
     }
 
-    pub async fn wait_switch_cursor(self: Arc<Self>) {
-        let mut rx = self.get_protocol_event_rx();
-        tokio::task::spawn(async move {
-            while rx.changed().await.is_ok() {
-                let value = rx.borrow().clone();
-                revere_mouse_position(
-                    map_from_string(value.edge),
-                    Screen {
-                        width: value.source_width,
-                        height: value.source_height,
-                    },
-                    Mouse {
-                        x: value.x,
-                        y: value.y,
-                    },
-                );
-            }
-        });
+    pub fn send_mouse_event(&self, value: MouseEvent) {
+        let _ = self.mouse_event_tx.send(value);
     }
 
-    pub async fn wait_update_protocol_event(self: Arc<Self>) {
-        let mut rx = self.get_protocol_event_rx();
-        let protocol_mutex = Arc::clone(&self.protocol_mutex);
-        tokio::task::spawn(async move {
-            while rx.changed().await.is_ok() {
-                let mut protocol_guard = protocol_mutex.lock().await;
-                let value = rx.borrow().clone();
-                *protocol_guard = value.clone();
-                log::debug!("Now screen IP:{}, MAC:{}", value.ip, value.mac);
+    pub async fn update_switch(&self, status: bool) {
+        match self.switch.try_lock() {
+            Ok(mut data) => {
+                *data = status;
             }
-        });
+            Err(e) => log::error!("Failed to lock update: {:?}", e),
+        }
+    }
+
+    pub async fn get_switch(&self) -> MutexGuard<'_, bool> {
+        let value = self.switch.lock().await;
+        value
     }
 
     pub async fn run(self: Arc<Self>) {
         let mut protocol_event_rx = self.protocol_event_rx.clone();
         let current_screen = get_screen_metrics();
-        let switch = Arc::clone(&self.switch);
-        let protocol_mutex = Arc::clone(&self.protocol_mutex);
         loop {
-            let mut switch = switch.lock().await;
             tokio::select! {
                 _ = protocol_event_rx.changed() => {
-                    *switch = true;
-                    let mut protocol_guard = protocol_mutex.lock().await;
+                    self.update_switch(true).await;
                     let value = protocol_event_rx.borrow().clone();
-                    *protocol_guard = value.clone();
-                    sleep(Duration::from_millis(100));
-                    *switch = false;
                     log::debug!("Now screen IP:{}, MAC:{}", value.ip, value.mac);
+                    self.update_protocol_event(value).await;
+                    sleep(Duration::from_millis(100));
+                    self.update_switch(false).await;
                 }
-                _ = tokio::time::sleep(Duration::from_millis(1)), if !switch.clone() => {
+                _ = tokio::time::sleep(Duration::from_millis(1)), if !self.get_switch().await.clone() => {
                     let current_point = get_cursor_point();
                     let current_edge = check_position_at_edge(current_point, current_screen);
-                    let _ = self.mouse_event_tx.send(MouseEvent { x: current_point.x, y: current_point.y, edge: current_edge.unwrap().to_string() });
+                    self.send_mouse_event(MouseEvent { x: current_point.x, y: current_point.y, edge: current_edge.unwrap().to_string() });
                 }
             }
         }

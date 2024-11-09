@@ -32,8 +32,12 @@ impl ScreenEventControlServiceApplication {
     }
 
     pub async fn update_data(&self, status: bool) {
-        let mut data = self.update.lock().await;
-        *data = status;
+        match self.update.try_lock() {
+            Ok(mut data) => {
+                *data = status;
+            }
+            Err(e) => log::error!("Failed to lock update: {:?}", e),
+        }
     }
 
     pub async fn run(self: Arc<Self>, mouse_event: Arc<MouseEventControlServiceApplication>) {
@@ -43,9 +47,8 @@ impl ScreenEventControlServiceApplication {
         let mut mouse_event_rx_status = mouse_event.get_mouse_event_rx();
         let mut mouse_event_rx = mouse_event.get_mouse_event_rx();
         while mouse_event_rx.changed().await.is_ok() {
-            let mut update = self.get_update().await;
             tokio::select! {
-                _ = mouse_event_rx_status.changed(), if update.clone() => {
+                _ = mouse_event_rx_status.changed(), if self.get_update().await.clone() => {
                     if let Ok(result) = ScreenMappingMetricRepository::find_all() {
                         s_matrix = result;
                     }
@@ -54,9 +57,9 @@ impl ScreenEventControlServiceApplication {
                     }
                     let protocol_event = MouseEventControlServiceApplication::new_protocol_event();
                     mouse_event.update_protocol_event(protocol_event).await;
-                    *update = false;
+                    self.update_data(false).await;
                 }
-                _ = mouse_event_rx.changed(), if !update.clone() => {
+                _ = mouse_event_rx.changed(), if !self.get_update().await.clone() => {
                     let data_mouse_event = mouse_event_rx.borrow().clone();
                     let data_protocol_event = mouse_event.get_protocol_event().await;
                     if
