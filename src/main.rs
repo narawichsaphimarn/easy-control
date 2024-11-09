@@ -4,9 +4,8 @@ pub mod infrastructure;
 pub mod presentation;
 pub mod shared;
 
-use application::services::control_service::{
-    MouseEventControlServiceApplication, ScreenEventControlServiceApplication,
-};
+use application::services::mouse_event_service::MouseEventControlServiceApplication;
+use application::services::screen_event_service::ScreenEventControlServiceApplication;
 use dotenvy::dotenv;
 use infrastructure::api::axum_config::start;
 use std::sync::Arc;

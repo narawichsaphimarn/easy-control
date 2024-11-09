@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use crate::application::services::control_service::ScreenEventControlServiceApplication;
-use crate::presentation::controllers::mouse_event_controller::mouse_event;
+use crate::application::services::screen_event_service::ScreenEventControlServiceApplication;
 use crate::presentation::controllers::protocol_controller::ping;
 use crate::presentation::controllers::screen_controller::{screen_mapping, screen_mapping_update};
 use crate::presentation::controllers::{
@@ -32,7 +31,6 @@ pub fn route(screen_event: Arc<ScreenEventControlServiceApplication>) -> Router 
             }),
         )
         .route("/api/v1/screen-matrix", put(screen_mapping_update))
-        .route("/api/v1/mouse/event", post(mouse_event))
         .fallback(fallback);
     app
 }

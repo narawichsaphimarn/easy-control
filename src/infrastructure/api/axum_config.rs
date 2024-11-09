@@ -4,7 +4,7 @@ use axum;
 use log;
 
 use crate::{
-    application::services::control_service::ScreenEventControlServiceApplication,
+    application::services::screen_event_service::ScreenEventControlServiceApplication,
     presentation::routers::axum_route::route,
 };
 

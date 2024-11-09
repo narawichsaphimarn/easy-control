@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::application::services::control_service::ScreenEventControlServiceApplication;
+use crate::application::services::screen_event_service::ScreenEventControlServiceApplication;
 use crate::application::services::screen_service::ScreenServiceApplication;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
 use crate::shared::constants::rest_status_constant::ResponseMessage;
