@@ -1,5 +1,4 @@
 use crate::shared::types::screen_type::Screen;
-use log;
 #[cfg(target_os = "macos")]
 use rdev::display_size;
 #[cfg(target_os = "windows")]

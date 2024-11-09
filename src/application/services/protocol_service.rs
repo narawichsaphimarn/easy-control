@@ -1,6 +1,5 @@
 use super::system_service::SystemServiceApplication;
 use crate::shared::rest_client::system_detail_rest_client::get_system_detail;
-use crate::shared::types::response_type::ResponseStruct;
 use crate::shared::{
     types::system_type::System,
     utils::protocol_util::{get_addrs, scan_network},

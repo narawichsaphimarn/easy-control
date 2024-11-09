@@ -1,22 +1,22 @@
+use crate::shared::constants::protocol_constant::InterfaceDesc;
 use crate::shared::utils::convert::byte_convert::convert_option_byte_to_string_for_mac;
-use crate::shared::{
-    constants::protocol_constant::InterfaceDesc,
-    utils::convert::byte_convert::convert_option_byte_to_string,
-};
 #[cfg(target_os = "windows")]
 use ipconfig;
 use log;
 use ping;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use pnet::datalink;
-use serde::de::Unexpected::{Option, Str};
+#[cfg(target_os = "macos")]
 use std::error::Error;
+#[cfg(target_os = "linux")]
 use std::fs;
+#[cfg(target_os = "linux")]
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
+#[cfg(target_os = "macos")]
 use tokio::process::Command;
-use tokio::sync::{mpsc, Semaphore};
+use tokio::sync::Semaphore;
 use tokio::task;
 
 #[cfg(any(target_os = "windows", target_os = "linux"))]

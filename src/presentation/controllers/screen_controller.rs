@@ -45,7 +45,7 @@ pub async fn screen_mapping_update(
     extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>,
 ) -> impl IntoResponse {
     match ScreenServiceApplication::screen_mapping_update(request).await {
-        Ok(data) => {
+        Ok(_) => {
             let resp: ResponseStruct<Vec<System>> = map_response(
                 ResponseMessage::Ok as u32,
                 ResponseMessage::Ok.to_string(),
