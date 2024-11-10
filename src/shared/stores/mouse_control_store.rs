@@ -18,7 +18,7 @@ impl MouseControl {
     pub async fn new() -> Self {
         MouseControl {
             socket: Arc::new(Mutex::new(
-                UdpSocket::bind("127.0.0.1:8080")
+                UdpSocket::bind("0.0.0.0:9876")
                     .await
                     .expect("Failed to bind socket"),
             )),
@@ -35,8 +35,17 @@ impl MouseControl {
         }
     }
 
-    pub async fn send(&self, msg: String) {
-        self.socket.lock().await.send(msg.as_bytes()).await.unwrap();
+    pub async fn send(&self, addr: &str, msg: String) {
+        match self.socket.try_lock() {
+            Ok(data) => match data
+                .send_to(msg.as_bytes(), addr.to_owned() + ":9876")
+                .await
+            {
+                Ok(_) => {}
+                Err(e) => log::debug!("Failed to send: {:?}", e),
+            },
+            Err(e) => log::debug!("Failed to lock update: {:?}", e),
+        }
     }
 
     pub async fn receive(&self) -> Mouse {

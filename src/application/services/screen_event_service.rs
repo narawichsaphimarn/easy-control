@@ -72,7 +72,6 @@ impl ScreenEventControlServiceApplication {
                                     x: data_mouse_event.x,
                                     y: data_mouse_event.y,
                                 };
-                                self.stores.mouse_control.connect(s_select_match.ip.to_owned()).await;
                                 self.stores.mouse_event.send_protocol_event(protocol_event_map);
                                 revere_mouse_position(
                                     map_from_string(s_matrix_match.edge.to_string()),
