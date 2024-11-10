@@ -6,7 +6,9 @@ use crate::shared::rest_client::screen_mapping_matrix_rest_client::update_screen
 use crate::shared::utils::protocol_util::get_addrs;
 use sqlite::Error;
 
+#[derive(Debug, Clone)]
 pub struct ScreenServiceApplication;
+
 impl ScreenServiceApplication {
     pub async fn screen_mapping_update(request: Vec<ScreenMappingRequest>) -> Result<(), String> {
         let barrier = SyncBarrier::new(1);

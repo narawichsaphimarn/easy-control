@@ -5,6 +5,7 @@ use crate::shared::{
     },
 };
 
+#[derive(Debug, Clone)]
 pub struct SystemServiceApplication;
 
 impl SystemServiceApplication {

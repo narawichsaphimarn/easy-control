@@ -14,6 +14,7 @@ use axum::{
     Router,
 };
 
+#[derive(Debug, Clone)]
 pub struct AxumRouter {
     pub stores: Arc<Stores>,
 }

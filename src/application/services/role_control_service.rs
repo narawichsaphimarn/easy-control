@@ -5,6 +5,7 @@ use crate::domain::pojo::setting_pojo::Setting;
 use crate::domain::repositories::setting_repository::SettingRepository;
 use crate::domain::services::setting_service::SettingServiceDomain;
 
+#[derive(Debug, Clone)]
 pub struct RoleControlServiceApplication {
     pub is_server: Arc<Mutex<bool>>,
 }

@@ -4,6 +4,7 @@ use crate::application::services::screen_event_service::ScreenEventControlServic
 use std::sync::Arc;
 use tokio::net::UdpSocket;
 
+#[derive(Debug, Clone)]
 pub struct MouseControlServiceApplication {
     pub mouse_event: Arc<MouseEventControlServiceApplication>,
     pub role: Arc<RoleControlServiceApplication>,

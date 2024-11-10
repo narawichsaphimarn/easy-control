@@ -6,6 +6,7 @@ use log;
 use crate::presentation::routers::axum_route::AxumRouter;
 use crate::shared::stores::stores::Stores;
 
+#[derive(Debug, Clone)]
 pub struct AxumInit {
     pub router: AxumRouter,
 }

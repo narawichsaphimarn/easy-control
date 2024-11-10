@@ -6,6 +6,7 @@ use crate::shared::{
 };
 use tokio::task::JoinHandle;
 
+#[derive(Debug, Clone)]
 pub struct ProtocolServiceApplication;
 
 impl ProtocolServiceApplication {

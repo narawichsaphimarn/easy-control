@@ -7,9 +7,10 @@ use crate::shared::stores::screen_event_store::ScreenEventControl;
 use crate::shared::types::response_type::ResponseStruct;
 use crate::shared::types::system_type::System;
 use crate::shared::utils::mapping::response_mapping::map_response;
+use axum::extract;
 use axum::http::StatusCode;
+use axum::response;
 use axum::response::IntoResponse;
-use axum::{extract, Json};
 
 pub async fn screen_mapping(
     extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>,
@@ -24,7 +25,7 @@ pub async fn screen_mapping(
                 None,
             );
             screen_event.update_data(true).await;
-            (StatusCode::OK, Json(resp).into_response())
+            (StatusCode::OK, response::Json(resp).into_response())
         }
         Err(s) => {
             let resp: ResponseStruct<String> = map_response(
@@ -35,7 +36,7 @@ pub async fn screen_mapping(
             );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(resp).into_response(),
+                response::Json(resp).into_response(),
             )
         }
     }
@@ -52,7 +53,7 @@ pub async fn screen_mapping_update(
                 None,
                 None,
             );
-            (StatusCode::OK, Json(resp).into_response())
+            (StatusCode::OK, response::Json(resp).into_response())
         }
         Err(s) => {
             let resp: ResponseStruct<String> = map_response(
@@ -63,7 +64,7 @@ pub async fn screen_mapping_update(
             );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(resp).into_response(),
+                response::Json(resp).into_response(),
             )
         }
     }
