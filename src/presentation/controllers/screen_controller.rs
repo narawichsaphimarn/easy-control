@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::application::services::screen_event_service::ScreenEventControlServiceApplication;
 use crate::application::services::screen_service::ScreenServiceApplication;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
 use crate::shared::constants::rest_status_constant::ResponseMessage;
+use crate::shared::stores::screen_event_store::ScreenEventControl;
 use crate::shared::types::response_type::ResponseStruct;
 use crate::shared::types::system_type::System;
 use crate::shared::utils::mapping::response_mapping::map_response;
@@ -13,7 +13,7 @@ use axum::{extract, Json};
 
 pub async fn screen_mapping(
     extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>,
-    screen_event: Arc<ScreenEventControlServiceApplication>,
+    screen_event: Arc<ScreenEventControl>,
 ) -> impl IntoResponse {
     match ScreenServiceApplication::screen_mapping_process(request).await {
         Ok(_) => {

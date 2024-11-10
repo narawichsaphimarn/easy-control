@@ -1,6 +1,8 @@
 use crate::domain::repositories::screen_mapping_matrix_repository::ScreenMappingMetricRepository;
 use crate::domain::repositories::screen_selector_repository::ScreenSelectorRepository;
 use crate::shared::constants::screen_constant::map_from_string;
+use crate::shared::stores::mouse_event_store::MouseEventControl;
+use crate::shared::stores::stores::Stores;
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
@@ -11,57 +13,39 @@ use crate::shared::utils::screen_util::get_screen_metrics;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
-use tokio::sync::{Mutex, MutexGuard};
 
-use super::mouse_event_service::MouseEventControlServiceApplication;
-
+#[derive(Debug, Clone)]
 pub struct ScreenEventControlServiceApplication {
-    update: Arc<Mutex<bool>>,
+    pub store: Arc<Stores>,
 }
 
 impl ScreenEventControlServiceApplication {
-    pub fn new() -> Self {
-        ScreenEventControlServiceApplication {
-            update: Arc::new(Mutex::new(true)),
-        }
+    pub fn new(store: Arc<Stores>) -> Arc<Self> {
+        Arc::new(ScreenEventControlServiceApplication { store })
     }
 
-    pub async fn get_update(&self) -> MutexGuard<'_, bool> {
-        let data = self.update.lock().await;
-        data
-    }
-
-    pub async fn update_data(&self, status: bool) {
-        match self.update.try_lock() {
-            Ok(mut data) => {
-                *data = status;
-            }
-            Err(e) => log::error!("Failed to lock update: {:?}", e),
-        }
-    }
-
-    pub async fn run(self: Arc<Self>, mouse_event: Arc<MouseEventControlServiceApplication>) {
+    pub async fn run(self: Arc<Self>) {
         let mut s_matrix = Vec::new();
         let mut s_select = Vec::new();
         let screen = get_screen_metrics();
-        let mut mouse_event_rx_status = mouse_event.get_mouse_event_rx();
-        let mut mouse_event_rx = mouse_event.get_mouse_event_rx();
+        let mut mouse_event_rx_status = self.store.mouse_event.get_mouse_event_rx();
+        let mut mouse_event_rx = self.store.mouse_event.get_mouse_event_rx();
         while mouse_event_rx.changed().await.is_ok() {
             tokio::select! {
-                _ = mouse_event_rx_status.changed(), if self.get_update().await.clone() => {
+                _ = mouse_event_rx_status.changed(), if self.store.screen_event.get_update().await.clone() => {
                     if let Ok(result) = ScreenMappingMetricRepository::find_all() {
                         s_matrix = result;
                     }
                     if let Ok(result) = ScreenSelectorRepository::find_all() {
                         s_select = result;
                     }
-                    let protocol_event = MouseEventControlServiceApplication::new_protocol_event();
-                    mouse_event.update_protocol_event(protocol_event).await;
-                    self.update_data(false).await;
+                    let protocol_event = MouseEventControl::new_protocol_event();
+                    self.store.mouse_event.update_protocol_event(protocol_event).await;
+                    self.store.screen_event.update_data(false).await;
                 }
-                _ = mouse_event_rx.changed(), if !self.get_update().await.clone() => {
+                _ = mouse_event_rx.changed(), if !self.store.screen_event.get_update().await.clone() => {
                     let data_mouse_event = mouse_event_rx.borrow().clone();
-                    let data_protocol_event = mouse_event.get_protocol_event().await;
+                    let data_protocol_event = self.store.mouse_event.get_protocol_event().await;
                     if
                         !data_mouse_event.edge.eq_ignore_ascii_case("NONE") &&
                         !data_mouse_event.edge.is_empty()
@@ -88,7 +72,7 @@ impl ScreenEventControlServiceApplication {
                                     x: data_mouse_event.x,
                                     y: data_mouse_event.y,
                                 };
-                                mouse_event.send_protocol_event(protocol_event_map);
+                                self.store.mouse_event.send_protocol_event(protocol_event_map);
                                 revere_mouse_position(
                                     map_from_string(s_matrix_match.edge.to_string()),
                                     Screen { width: screen.width, height: screen.height },

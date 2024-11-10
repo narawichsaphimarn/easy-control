@@ -1,15 +1,12 @@
-use crate::application::services::role_control_service::RoleControlServiceApplication;
 use crate::domain::services::setting_service::SettingServiceDomain;
 use crate::presentation::models::role_model::Pagination;
+use crate::shared::stores::role_event_store::RoleControl;
 use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Json};
 use std::sync::Arc;
 
-pub async fn update_role(
-    query: Query<Pagination>,
-    role: Arc<RoleControlServiceApplication>,
-) -> impl IntoResponse {
+pub async fn update_role(query: Query<Pagination>, role: Arc<RoleControl>) -> impl IntoResponse {
     match SettingServiceDomain::update_value(
         String::from("NETWORK_ROLE"),
         String::from("NETWORK"),
