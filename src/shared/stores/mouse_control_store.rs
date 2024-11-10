@@ -1,4 +1,3 @@
-use log::log;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::net::UdpSocket;
