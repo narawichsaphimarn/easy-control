@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
+use crate::application::services::role_control_service::RoleControlServiceApplication;
 use crate::application::services::screen_event_service::ScreenEventControlServiceApplication;
 use crate::presentation::controllers::protocol_controller::ping;
+use crate::presentation::controllers::role_controller::update_role;
 use crate::presentation::controllers::screen_controller::{screen_mapping, screen_mapping_update};
 use crate::presentation::controllers::{
     actuator_controller::actuator, protocol_controller::get_machine,
@@ -17,7 +19,10 @@ async fn fallback() -> (StatusCode, &'static str) {
     (StatusCode::NOT_FOUND, "Not Found")
 }
 
-pub fn route(screen_event: Arc<ScreenEventControlServiceApplication>) -> Router {
+pub fn route(
+    screen_event: Arc<ScreenEventControlServiceApplication>,
+    role: Arc<RoleControlServiceApplication>,
+) -> Router {
     let app: Router<_> = Router::new()
         .route("/api/status", get(actuator))
         .route("/api/v1/check-machine", get(get_machine))
@@ -31,6 +36,13 @@ pub fn route(screen_event: Arc<ScreenEventControlServiceApplication>) -> Router 
             }),
         )
         .route("/api/v1/screen-matrix", put(screen_mapping_update))
+        .route(
+            "/api/v1/update-role",
+            get({
+                let role = Arc::clone(&role);
+                move |query| update_role(query, role)
+            }),
+        )
         .fallback(fallback);
     app
 }

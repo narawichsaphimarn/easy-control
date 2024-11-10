@@ -5,6 +5,7 @@ pub mod presentation;
 pub mod shared;
 
 use application::services::mouse_event_service::MouseEventControlServiceApplication;
+use application::services::role_control_service::RoleControlServiceApplication;
 use application::services::screen_event_service::ScreenEventControlServiceApplication;
 use dotenvy::dotenv;
 use infrastructure::api::axum_config::start;
@@ -21,9 +22,10 @@ async fn main() {
     init();
     let mouse_event = Arc::new(MouseEventControlServiceApplication::new());
     let screen_event = Arc::new(ScreenEventControlServiceApplication::new());
-    tokio::task::spawn(start(Arc::clone(&screen_event)));
+    let role_event = Arc::new(RoleControlServiceApplication::new());
+    tokio::task::spawn(start(Arc::clone(&screen_event), Arc::clone(&role_event)));
     tokio::task::spawn(screen_event.run(Arc::clone(&mouse_event)));
-    tokio::task::spawn(mouse_event.run());
+    tokio::task::spawn(mouse_event.run(Arc::clone(&role_event)));
     tokio::signal::ctrl_c().await.unwrap();
 }
 

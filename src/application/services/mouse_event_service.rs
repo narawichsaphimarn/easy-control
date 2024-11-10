@@ -10,6 +10,7 @@ use tokio::sync::watch::{Receiver, Sender};
 use tokio::sync::{watch, Mutex, MutexGuard};
 
 use super::protocol_service::ProtocolServiceApplication;
+use super::role_control_service::RoleControlServiceApplication;
 
 #[derive(Debug, Clone)]
 pub struct MouseEventControlServiceApplication {
@@ -107,7 +108,7 @@ impl MouseEventControlServiceApplication {
         value
     }
 
-    pub async fn run(self: Arc<Self>) {
+    pub async fn run(self: Arc<Self>, role: Arc<RoleControlServiceApplication>) {
         let mut protocol_event_rx = self.protocol_event_rx.clone();
         let current_screen = get_screen_metrics();
         loop {
@@ -120,11 +121,13 @@ impl MouseEventControlServiceApplication {
                     sleep(Duration::from_millis(100));
                     self.update_switch(false).await;
                 }
-                _ = tokio::time::sleep(Duration::from_millis(1)), if !self.get_switch().await.clone() => {
+                _ = tokio::time::sleep(Duration::from_millis(1)), if !self.get_switch().await.clone() && role.get_is_server().await.clone() => {
                     let current_point = get_cursor_point();
                     let current_edge = check_position_at_edge(current_point, current_screen);
                     self.send_mouse_event(MouseEvent { x: current_point.x, y: current_point.y, edge: current_edge.unwrap().to_string() });
                 }
+                _ = tokio::time::sleep(Duration::from_millis(500)), if !role.get_is_server().await
+                .clone() => {}
             }
         }
     }

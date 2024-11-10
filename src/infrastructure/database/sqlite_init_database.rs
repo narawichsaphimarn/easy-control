@@ -3,7 +3,8 @@ use sqlite::Error;
 
 impl SqliteDBInfraInit for SqliteDBInfra {
     fn init() -> Result<(), Error> {
-        let query = "
+        let query =
+            "
             CREATE TABLE IF NOT EXISTS screen_selector (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             ip varchar(255) NOT NULL UNIQUE,
@@ -58,6 +59,12 @@ impl SqliteDBInfraInit for SqliteDBInfra {
             (31, 'SCREEN_NUMBER', '8,9', 'RIGHT'),
             (32, 'SCREEN_NUMBER', '9,6', 'TOP'),
             (33, 'SCREEN_NUMBER', '9,8', 'LEFT');
+
+            CREATE TABLE IF NOT EXISTS setting (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            parameter_key varchar(255) NOT NULL,
+            parameter_group varchar(255) NOT NULL,
+            parameter_value varchar(255) NOT NULL);
             ";
         let conn = Self::connect()?;
         Ok(Self::execute(&conn, query)?)
