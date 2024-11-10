@@ -9,6 +9,7 @@ use application::services::screen_event_service::ScreenEventControlServiceApplic
 use dotenvy::dotenv;
 use std::sync::Arc;
 
+use crate::application::services::mouse_control_service::MouseControlServiceApplication;
 use crate::infrastructure::api::axum_config::AxumInit;
 use crate::infrastructure::database::sqlite_database::{SqliteDBInfra, SqliteDBInfraInit};
 use crate::infrastructure::log::log_custom::SimpleLogger;
@@ -20,11 +21,11 @@ static LOGGER: SimpleLogger = SimpleLogger;
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() {
     init();
-    let store = Stores::new();
+    let store = Stores::new().await;
     tokio::task::spawn(AxumInit::new(Arc::clone(&store)).start());
     tokio::task::spawn(ScreenEventControlServiceApplication::new(Arc::clone(&store)).run());
     tokio::task::spawn(MouseEventControlServiceApplication::new(Arc::clone(&store)).run());
-    // tokio::task::spawn(mouse_control.run());
+    tokio::task::spawn(MouseControlServiceApplication::new(Arc::clone(&store)).run());
     tokio::signal::ctrl_c().await.unwrap();
 }
 

@@ -16,23 +16,23 @@ use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct ScreenEventControlServiceApplication {
-    pub store: Arc<Stores>,
+    pub stores: Arc<Stores>,
 }
 
 impl ScreenEventControlServiceApplication {
-    pub fn new(store: Arc<Stores>) -> Arc<Self> {
-        Arc::new(ScreenEventControlServiceApplication { store })
+    pub fn new(stores: Arc<Stores>) -> Arc<Self> {
+        Arc::new(ScreenEventControlServiceApplication { stores })
     }
 
     pub async fn run(self: Arc<Self>) {
         let mut s_matrix = Vec::new();
         let mut s_select = Vec::new();
         let screen = get_screen_metrics();
-        let mut mouse_event_rx_status = self.store.mouse_event.get_mouse_event_rx();
-        let mut mouse_event_rx = self.store.mouse_event.get_mouse_event_rx();
+        let mut mouse_event_rx_status = self.stores.mouse_event.get_mouse_event_rx();
+        let mut mouse_event_rx = self.stores.mouse_event.get_mouse_event_rx();
         while mouse_event_rx.changed().await.is_ok() {
             tokio::select! {
-                _ = mouse_event_rx_status.changed(), if self.store.screen_event.get_update().await.clone() => {
+                _ = mouse_event_rx_status.changed(), if self.stores.screen_event.get_update().await.clone() => {
                     if let Ok(result) = ScreenMappingMetricRepository::find_all() {
                         s_matrix = result;
                     }
@@ -40,12 +40,12 @@ impl ScreenEventControlServiceApplication {
                         s_select = result;
                     }
                     let protocol_event = MouseEventControl::new_protocol_event();
-                    self.store.mouse_event.update_protocol_event(protocol_event).await;
-                    self.store.screen_event.update_data(false).await;
+                    self.stores.mouse_event.update_protocol_event(protocol_event).await;
+                    self.stores.screen_event.update_data(false).await;
                 }
-                _ = mouse_event_rx.changed(), if !self.store.screen_event.get_update().await.clone() => {
+                _ = mouse_event_rx.changed(), if !self.stores.screen_event.get_update().await.clone() => {
                     let data_mouse_event = mouse_event_rx.borrow().clone();
-                    let data_protocol_event = self.store.mouse_event.get_protocol_event().await;
+                    let data_protocol_event = self.stores.mouse_event.get_protocol_event().await;
                     if
                         !data_mouse_event.edge.eq_ignore_ascii_case("NONE") &&
                         !data_mouse_event.edge.is_empty()
@@ -72,7 +72,8 @@ impl ScreenEventControlServiceApplication {
                                     x: data_mouse_event.x,
                                     y: data_mouse_event.y,
                                 };
-                                self.store.mouse_event.send_protocol_event(protocol_event_map);
+                                self.stores.mouse_control.connect(s_select_match.ip.to_owned()).await;
+                                self.stores.mouse_event.send_protocol_event(protocol_event_map);
                                 revere_mouse_position(
                                     map_from_string(s_matrix_match.edge.to_string()),
                                     Screen { width: screen.width, height: screen.height },
