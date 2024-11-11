@@ -15,6 +15,7 @@ use crate::infrastructure::database::sqlite_database::{SqliteDBInfra, SqliteDBIn
 use crate::infrastructure::log::log_custom::SimpleLogger;
 use crate::shared::stores::stores::Stores;
 use log::LevelFilter;
+use crate::application::services::block_event_control_service::BlockEventControlServiceApplication;
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
@@ -26,6 +27,7 @@ async fn main() {
     tokio::task::spawn(ScreenEventControlServiceApplication::new(Arc::clone(&store)).run());
     tokio::task::spawn(MouseEventControlServiceApplication::new(Arc::clone(&store)).run());
     tokio::task::spawn(MouseControlServiceApplication::new(Arc::clone(&store)).run());
+    tokio::task::spawn(BlockEventControlServiceApplication::new(Arc::clone(&store)).run());
     tokio::signal::ctrl_c().await.unwrap();
 }
 
