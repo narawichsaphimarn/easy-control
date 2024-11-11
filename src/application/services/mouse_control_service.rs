@@ -3,8 +3,8 @@ use crate::shared::stores::mouse_control_store::Mouse;
 use crate::shared::stores::stores::Stores;
 use crate::shared::utils::mouse_util::move_cursor;
 use crate::shared::utils::protocol_util::get_addrs;
-use std::sync::Arc;
 use crate::shared::utils::screen_util::scale_coordinates;
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct MouseControlServiceApplication {
