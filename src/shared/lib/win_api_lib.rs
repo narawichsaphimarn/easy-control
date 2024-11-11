@@ -7,8 +7,8 @@ use winapi::um::winuser::{
     ClipCursor, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetClientRect,
     GetMessageW, LoadCursorW, PostQuitMessage, RegisterClassW, SetLayeredWindowAttributes,
     SetWindowLongPtrW, ShowCursor, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW,
-    CW_USEDEFAULT, GWL_EXSTYLE, IDC_ARROW, LWA_COLORKEY, MSG, SW_HIDE, SW_MAX, SW_SHOW,
-    SW_SHOWMAXIMIZED, WM_DESTROY, WM_MOUSEMOVE, WNDCLASSW, WS_EX_LAYERED, WS_OVERLAPPEDWINDOW,
+    CW_USEDEFAULT, GWL_EXSTYLE, IDC_ARROW, LWA_COLORKEY, MSG, SW_SHOWMAXIMIZED, WM_DESTROY,
+    WM_MOUSEMOVE, WNDCLASSW, WS_EX_LAYERED, WS_OVERLAPPEDWINDOW,
 };
 
 unsafe extern "system" fn window_proc(

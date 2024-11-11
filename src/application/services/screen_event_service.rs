@@ -11,8 +11,6 @@ use crate::shared::utils::mouse_util::{
 };
 use crate::shared::utils::screen_util::get_screen_metrics;
 use std::sync::Arc;
-use std::thread::sleep;
-use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct ScreenEventControlServiceApplication {
@@ -82,7 +80,6 @@ impl ScreenEventControlServiceApplication {
                                     Screen { width: screen.width, height: screen.height },
                                     Mouse { x: data_mouse_event.x, y: data_mouse_event.y });
                                 lock_cursor(reverse_point);
-                                sleep(Duration::from_millis(50));
                                 unlock_cursor()
                             }
                         }
