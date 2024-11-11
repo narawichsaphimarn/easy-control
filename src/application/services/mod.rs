@@ -1,3 +1,4 @@
+pub mod block_event_control_service;
 pub mod mouse_control_service;
 pub mod mouse_event_service;
 pub mod protocol_service;

@@ -12,7 +12,14 @@ use winapi::um::winuser::{
     WM_MOUSEMOVE, WNDCLASSW, WS_EX_LAYERED, WS_OVERLAPPEDWINDOW,
 };
 
+#[derive(Debug, Clone)]
 pub struct LibEvent;
+
+impl LibEvent {
+    pub fn new() -> Self {
+        LibEvent
+    }
+}
 
 #[cfg(target_os = "windows")]
 impl LibEvent {
