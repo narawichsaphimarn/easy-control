@@ -1,4 +1,5 @@
 use std::ptr;
+use std::sync::Arc;
 use winapi::shared::minwindef::{BOOL, LPARAM, LRESULT, UINT, WPARAM};
 use winapi::shared::windef::{HWND, RECT};
 use winapi::um::libloaderapi::GetModuleHandleW;
@@ -11,45 +12,48 @@ use winapi::um::winuser::{
     WM_MOUSEMOVE, WNDCLASSW, WS_EX_LAYERED, WS_OVERLAPPEDWINDOW,
 };
 
-unsafe extern "system" fn window_proc(
-    hwnd: HWND,
-    msg: UINT,
-    w_param: WPARAM,
-    l_param: LPARAM,
-) -> LRESULT {
-    match msg {
-        WM_DESTROY => {
-            ClipCursor(ptr::null());
-            ShowCursor(BOOL::from(true)); // แสดงเคอร์เซอร์อีกครั้ง
-            PostQuitMessage(0);
-            0
+pub struct LibEvent;
+
+#[cfg(target_os = "windows")]
+impl LibEvent {
+    unsafe extern "system" fn window_proc(
+        hwnd: HWND,
+        msg: UINT,
+        w_param: WPARAM,
+        l_param: LPARAM,
+    ) -> LRESULT {
+        match msg {
+            WM_DESTROY => {
+                ClipCursor(ptr::null());
+                ShowCursor(BOOL::from(true)); // แสดงเคอร์เซอร์อีกครั้ง
+                PostQuitMessage(0);
+                0
+            }
+            WM_MOUSEMOVE => {
+                // คุณสามารถเพิ่มการกระทำอื่น ๆ ที่จะทำเมื่อเคอร์เซอร์เคลื่อนที่
+                0
+            }
+            _ => DefWindowProcW(hwnd, msg, w_param, l_param),
         }
-        WM_MOUSEMOVE => {
-            // คุณสามารถเพิ่มการกระทำอื่น ๆ ที่จะทำเมื่อเคอร์เซอร์เคลื่อนที่
-            0
-        }
-        _ => DefWindowProcW(hwnd, msg, w_param, l_param),
     }
-}
 
-fn to_string(value: &str) -> Vec<u16> {
-    use std::ffi::OsStr;
-    use std::os::windows::ffi::OsStrExt;
-    OsStr::new(value)
-        .encode_wide()
-        .chain(Some(0).into_iter())
-        .collect()
-}
+    fn to_string(value: &str) -> Vec<u16> {
+        use std::ffi::OsStr;
+        use std::os::windows::ffi::OsStrExt;
+        OsStr::new(value)
+            .encode_wide()
+            .chain(Some(0).into_iter())
+            .collect()
+    }
 
-pub fn create_window() {
-    unsafe {
+    pub unsafe fn create_window(&self) -> HWND {
         let h_instance = GetModuleHandleW(ptr::null());
 
-        let class_name = to_string("my_window_class");
+        let class_name = Self::to_string("my_window_class");
 
         let wnd_class = WNDCLASSW {
             style: CS_HREDRAW | CS_VREDRAW,
-            lpfnWndProc: Some(window_proc),
+            lpfnWndProc: Some(Self::window_proc),
             hInstance: h_instance,
             lpszClassName: class_name.as_ptr(),
             hCursor: LoadCursorW(ptr::null_mut(), IDC_ARROW),
@@ -61,7 +65,7 @@ pub fn create_window() {
         let hwnd = CreateWindowExW(
             0,
             class_name.as_ptr(),
-            to_string("My Window").as_ptr(),
+            Self::to_string("My Window").as_ptr(),
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -88,14 +92,30 @@ pub fn create_window() {
         let mut rect: RECT = std::mem::zeroed();
         GetClientRect(hwnd, &mut rect);
         ClipCursor(&rect);
+        hwnd
+    }
 
-        let mut msg: MSG = std::mem::zeroed();
+    pub fn run(self: Arc<Self>) {
+        unsafe {
+            let hwnd = self.create_window();
+            self.wait();
+            self.destroy(hwnd);
+        }
+    }
 
-        while GetMessageW(&mut msg, ptr::null_mut(), 0, 0) > 0 {
+    pub unsafe fn get_message(&self, mut msg: MSG) -> BOOL {
+        GetMessageW(&mut msg, ptr::null_mut(), 0, 0)
+    }
+
+    pub unsafe fn wait(&self) {
+        let msg: MSG = std::mem::zeroed();
+        while self.get_message(msg) > 0 {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
+    }
 
+    pub unsafe fn destroy(&self, hwnd: HWND) {
         DestroyWindow(hwnd);
     }
 }

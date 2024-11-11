@@ -1,7 +1,7 @@
 use crate::shared::stores::stores::Stores;
 use crate::shared::types::mouse_type::MouseEvent;
-use crate::shared::utils::mouse_util::{check_position_at_edge, get_cursor_point, move_cursor};
-use crate::shared::utils::screen_util::get_screen_metrics;
+use crate::shared::utils::mouse_util::MouseUtil;
+use crate::shared::utils::screen_util::ScreenUtil;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -17,7 +17,7 @@ impl MouseEventControlServiceApplication {
 
     pub async fn run(self: Arc<Self>) {
         let mut protocol_event_rx = self.stores.mouse_event.protocol_event_rx.clone();
-        let current_screen = get_screen_metrics();
+        let current_screen = ScreenUtil::get_screen_metrics();
         loop {
             tokio::select! {
                 _ = protocol_event_rx.changed() => {
@@ -30,13 +30,14 @@ impl MouseEventControlServiceApplication {
                 }
                 _ = async {}, if !self.stores.mouse_event
                 .get_switch().await.clone() && self.stores.role_event.get_is_server().await.clone() => {
-                    let current_point = get_cursor_point();
-                    let current_edge = check_position_at_edge(current_point, current_screen);
+                    let current_point = MouseUtil::get_cursor_point();
+                    let current_edge = MouseUtil::check_position_at_edge(current_point,
+                        current_screen);
                     self.stores.mouse_event.send_mouse_event(MouseEvent { x: current_point.x, y: current_point.y, edge: current_edge.unwrap().to_string() });
                 }
                 _ = async {}, if !self.stores.role_event.get_is_server().await.clone() => {
                     let receive = self.stores.mouse_control.receive().await;
-                    move_cursor(receive.x, receive.y);
+                    MouseUtil::move_cursor(receive.x, receive.y);
                 }
             }
         }

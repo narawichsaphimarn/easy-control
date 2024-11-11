@@ -18,7 +18,7 @@ use log::LevelFilter;
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 10)]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() {
     init();
     let store = Stores::new().await;

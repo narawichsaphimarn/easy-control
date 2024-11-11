@@ -6,10 +6,8 @@ use crate::shared::stores::stores::Stores;
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
-use crate::shared::utils::mouse_util::{
-    get_revere_mouse_position, lock_cursor, revere_mouse_position, unlock_cursor,
-};
-use crate::shared::utils::screen_util::get_screen_metrics;
+use crate::shared::utils::mouse_util::MouseUtil;
+use crate::shared::utils::screen_util::ScreenUtil;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
@@ -25,7 +23,7 @@ impl ScreenEventControlServiceApplication {
     pub async fn run(self: Arc<Self>) {
         let mut s_matrix = Vec::new();
         let mut s_select = Vec::new();
-        let screen = get_screen_metrics();
+        let screen = ScreenUtil::get_screen_metrics();
         let mut mouse_event_rx_status = self.stores.mouse_event.get_mouse_event_rx();
         let mut mouse_event_rx = self.stores.mouse_event.get_mouse_event_rx();
         while mouse_event_rx.changed().await.is_ok() {
@@ -71,16 +69,17 @@ impl ScreenEventControlServiceApplication {
                                     y: data_mouse_event.y,
                                 };
                                 self.stores.mouse_event.send_protocol_event(protocol_event_map);
-                                revere_mouse_position(
+                                MouseUtil::revere_mouse_position(
                                     map_from_string(s_matrix_match.edge.to_string()),
                                     Screen { width: screen.width, height: screen.height },
                                     Mouse { x: data_mouse_event.x, y: data_mouse_event.y }
                                 );
-                                let reverse_point = get_revere_mouse_position(map_from_string(s_matrix_match.edge.to_string()),
+                                let reverse_point = MouseUtil::get_revere_mouse_position
+                            (map_from_string(s_matrix_match.edge.to_string()),
                                     Screen { width: screen.width, height: screen.height },
                                     Mouse { x: data_mouse_event.x, y: data_mouse_event.y });
-                                lock_cursor(reverse_point);
-                                unlock_cursor()
+                                MouseUtil::lock_cursor(reverse_point);
+                                MouseUtil::unlock_cursor()
                             }
                         }
                     }
