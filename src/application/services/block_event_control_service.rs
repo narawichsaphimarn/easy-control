@@ -16,13 +16,13 @@ impl BlockEventControlServiceApplication {
     pub async fn run(self: Arc<Self>) {
         let ips: (String, String) = ProtocolUtil::get_addrs();
         let (select_ip, _) = ProtocolServiceApplication::select_ip(ips);
-        loop {
-            tokio::select! {
-                _ = async {}, if self.stores.role_event.get_is_server().await
-                .clone() && !select_ip.eq_ignore_ascii_case(&self.stores.mouse_event.get_protocol_event().await.ip) => {
-                    self.stores.lib_event.clone().run();
-                }
-                else => {}
+        tokio::select! {
+            _ = async {}, if self.stores.role_event.get_is_server().await
+            .clone() && !select_ip.eq_ignore_ascii_case(&self.stores.mouse_event.get_protocol_event().await.ip) => {
+                self.stores.lib_event.clone().run().await;
+            }
+            else => {
+                self.stores.lib_event.clone().destroy().await;
             }
         }
     }
