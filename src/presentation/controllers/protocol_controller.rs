@@ -1,5 +1,5 @@
 use crate::presentation::models::system_model::Pagination;
-use crate::shared::utils::protocol_util::ping_ip;
+use crate::shared::utils::protocol_util::ProtocolUtil;
 use crate::{
     application::services::protocol_service::ProtocolServiceApplication,
     shared::{
@@ -43,6 +43,6 @@ pub async fn get_machine() -> impl IntoResponse {
 pub async fn ping(pagination: Query<Pagination>) -> impl IntoResponse {
     (
         StatusCode::OK,
-        Json(ping_ip(&*pagination.0.ip_addr).await).into_response(),
+        Json(ProtocolUtil::ping_ip(&*pagination.0.ip_addr).await).into_response(),
     )
 }

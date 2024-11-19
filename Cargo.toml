@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-winapi = { version = "0.3.9", features = ["winuser", "windef"] }
+winapi = { version = "0.3", features = ["winuser", "windef", "minwindef", "winnt", "libloaderapi", "wingdi"] }
 log = "0.4"
 dotenvy = "0.15"
 axum = "0.7.7"
@@ -30,3 +30,4 @@ run = "cargo run"
 check = "cargo check"
 build = "cargo build"
 release = "cargo build --release"
+reformat = "cargo fmt"

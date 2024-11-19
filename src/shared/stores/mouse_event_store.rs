@@ -2,8 +2,8 @@ use crate::application::services::protocol_service::ProtocolServiceApplication;
 
 use crate::shared::types::mouse_type::MouseEvent;
 use crate::shared::types::protocol_type::ProtocolEvent;
-use crate::shared::utils::protocol_util::{get_addrs, get_mac_addr};
-use crate::shared::utils::screen_util::get_screen_metrics;
+use crate::shared::utils::protocol_util::ProtocolUtil;
+use crate::shared::utils::screen_util::ScreenUtil;
 use std::sync::Arc;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::sync::{watch, Mutex, MutexGuard};
@@ -20,11 +20,11 @@ pub struct MouseEventControl {
 
 impl MouseEventControl {
     pub fn new_protocol_event() -> ProtocolEvent {
-        let ips: (String, String) = get_addrs();
+        let ips: (String, String) = ProtocolUtil::get_addrs();
         let (select_ip, _) = ProtocolServiceApplication::select_ip(ips);
-        let screen = get_screen_metrics();
+        let screen = ScreenUtil::get_screen_metrics();
         let protocol_event = ProtocolEvent {
-            mac: get_mac_addr(select_ip.clone()),
+            mac: ProtocolUtil::get_mac_addr(select_ip.clone()),
             ip: select_ip,
             edge: String::new(),
             source_width: screen.width,

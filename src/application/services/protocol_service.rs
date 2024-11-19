@@ -1,9 +1,7 @@
 use super::system_service::SystemServiceApplication;
 use crate::shared::rest_client::system_detail_rest_client::get_system_detail;
-use crate::shared::{
-    types::system_type::System,
-    utils::protocol_util::{get_addrs, scan_network},
-};
+use crate::shared::types::system_type::System;
+use crate::shared::utils::protocol_util::ProtocolUtil;
 use tokio::task::JoinHandle;
 
 #[derive(Debug, Clone)]
@@ -11,7 +9,7 @@ pub struct ProtocolServiceApplication;
 
 impl ProtocolServiceApplication {
     pub async fn check_machine() -> Result<Vec<System>, String> {
-        let ips: (String, String) = get_addrs();
+        let ips: (String, String) = ProtocolUtil::get_addrs();
         log::debug!("ips  wlan : {}, lan: {}", ips.0, ips.1);
         let (select_ip, unselect_ip) = Self::select_ip(ips);
         log::debug!(
@@ -20,7 +18,7 @@ impl ProtocolServiceApplication {
             unselect_ip.clone()
         );
         let ip = Self::slice_ip(select_ip.clone());
-        let mut ips_active = scan_network(&ip).await;
+        let mut ips_active = ProtocolUtil::scan_network(&ip).await;
         ips_active.retain(|ip| ip != &unselect_ip);
         log::debug!("IPS Active : {:?}", ips_active);
         Ok(Self::combine_data_ip_active(ips_active, select_ip.clone()).await)

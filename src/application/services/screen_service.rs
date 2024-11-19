@@ -3,7 +3,7 @@ use crate::domain::services::screen_service::ScreenServiceDomain;
 use crate::infrastructure::thread_async::sync_barrier::SyncBarrier;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
 use crate::shared::rest_client::screen_mapping_matrix_rest_client::update_screen_matrix;
-use crate::shared::utils::protocol_util::get_addrs;
+use crate::shared::utils::protocol_util::ProtocolUtil;
 use sqlite::Error;
 
 #[derive(Debug, Clone)]
@@ -38,7 +38,7 @@ impl ScreenServiceApplication {
     pub async fn update_matrix_inside_network(
         request: Vec<ScreenMappingRequest>,
     ) -> Result<(), Error> {
-        let ips: (String, String) = get_addrs();
+        let ips: (String, String) = ProtocolUtil::get_addrs();
         log::debug!("ips  wlan : {}, lan: {}", ips.0, ips.1);
         let (select_ip, _) = ProtocolServiceApplication::select_ip(ips);
         let mut request_cp = request.clone();
