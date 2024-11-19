@@ -1,21 +1,25 @@
+use crate::domain::repositories::setting_repository::SettingRepository;
+use crate::shared::constants::event_process_constant::EventProcess;
 use crate::shared::constants::step_control_constant::StepControl;
+use crate::shared::stores::role_event_store::RoleControl;
 use crate::shared::types::mouse_type::MouseEvent;
+use std::fmt::{Display, Formatter};
 use tokio::sync::watch;
 use tokio::sync::watch::{Receiver, Sender};
 
 #[derive(Clone, Debug)]
 pub struct StepControlStore {
-    pub step_tx: Sender<String>,
-    pub step_rx: Receiver<String>,
+    pub step_tx: Sender<EventProcess>,
+    pub step_rx: Receiver<EventProcess>,
 }
 
 impl StepControlStore {
     pub fn new() -> Self {
-        let (step_tx, step_rx) = watch::channel::<String>(String::new());
+        let (step_tx, step_rx) = watch::channel(EventProcess::Restart);
         Self { step_tx, step_rx }
     }
 
-    pub fn send(&self, step: String) {
+    pub fn send(&self, step: EventProcess) {
         match self.step_tx.send(step) {
             Ok(_) => {
                 log::debug!("sending step success");
@@ -26,15 +30,11 @@ impl StepControlStore {
         }
     }
 
-    pub async fn wait(&mut self) -> bool {
-        self.step_rx.changed().await.is_ok()
-    }
-
-    pub async fn receive(&mut self) -> String {
+    pub async fn receive(&self) -> EventProcess {
         self.step_rx.borrow().clone()
     }
 
-    pub async fn get_rx(&mut self) -> Receiver<String> {
+    pub fn get_rx(&self) -> Receiver<EventProcess> {
         self.step_rx.clone()
     }
 }

@@ -7,7 +7,8 @@ use crate::presentation::controllers::{
     actuator_controller::actuator, protocol_controller::get_machine,
     system_controller::get_system_detail,
 };
-use crate::shared::stores::stores::Stores;
+// use crate::shared::stores::stores::Stores;
+use crate::shared::stores::stores_v2::StoresV2;
 use axum::{
     http::StatusCode,
     routing::{get, post, put},
@@ -16,11 +17,11 @@ use axum::{
 
 #[derive(Debug, Clone)]
 pub struct AxumRouter {
-    pub stores: Arc<Stores>,
+    pub stores: Arc<StoresV2>,
 }
 
 impl AxumRouter {
-    pub fn new(stores: Arc<Stores>) -> Self {
+    pub fn new(stores: Arc<StoresV2>) -> Self {
         AxumRouter { stores }
     }
 
@@ -37,16 +38,16 @@ impl AxumRouter {
             .route(
                 "/api/v1/screen-matrix",
                 post({
-                    let screen_event = Arc::clone(&self.stores.screen_event);
-                    move |body| screen_mapping(body, screen_event)
+                    let step_control = Arc::clone(&self.stores.step_control);
+                    move |body| screen_mapping(body, step_control)
                 }),
             )
             .route("/api/v1/screen-matrix", put(screen_mapping_update))
             .route(
                 "/api/v1/update-role",
                 get({
-                    let role = Arc::clone(&self.stores.role_event);
-                    move |query| update_role(query, role)
+                    let step_control = Arc::clone(&self.stores.step_control);
+                    move |query| update_role(query, step_control)
                 }),
             )
             .fallback(Self::fallback);

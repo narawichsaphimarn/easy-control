@@ -1,3 +1,4 @@
+pub mod event_process_constant;
 pub mod mouse_event_constant;
 pub mod protocol_constant;
 pub mod rest_client_constant;

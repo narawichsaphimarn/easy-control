@@ -4,7 +4,8 @@ use axum;
 use log;
 
 use crate::presentation::routers::axum_route::AxumRouter;
-use crate::shared::stores::stores::Stores;
+// use crate::shared::stores::stores::Stores;
+use crate::shared::stores::stores_v2::StoresV2;
 
 #[derive(Debug, Clone)]
 pub struct AxumInit {
@@ -12,7 +13,7 @@ pub struct AxumInit {
 }
 
 impl AxumInit {
-    pub fn new(stores: Arc<Stores>) -> Arc<Self> {
+    pub fn new(stores: Arc<StoresV2>) -> Arc<Self> {
         Arc::new(AxumInit {
             router: AxumRouter::new(Arc::clone(&stores)),
         })

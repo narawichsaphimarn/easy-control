@@ -11,7 +11,7 @@ pub struct RoleControl {
 }
 
 impl RoleControl {
-    pub fn check_role() -> bool {
+    pub fn check_role() -> String {
         if let Ok(value) = SettingRepository::find_by_key_and_group(
             String::from("NETWORK_ROLE"),
             String::from("NETWORK"),
@@ -34,23 +34,21 @@ impl RoleControl {
             } else {
                 value
             };
-            let mut status = false;
+            let mut status = String::new();
             for value in setting {
-                if value.parameter_value == "SERVER" {
-                    status = true;
-                } else {
-                    status = false;
-                }
+                status = value.parameter_value
             }
             status
         } else {
-            false
+            String::from("RESTART")
         }
     }
 
     pub fn new() -> Self {
         RoleControl {
-            is_server: Arc::new(Mutex::new(Self::check_role())),
+            is_server: Arc::new(Mutex::new(
+                Self::check_role().eq_ignore_ascii_case("server"),
+            )),
         }
     }
 
@@ -62,7 +60,7 @@ impl RoleControl {
     pub async fn update_is_server(&self) {
         match self.is_server.try_lock() {
             Ok(mut data) => {
-                *data = Self::check_role();
+                *data = Self::check_role().eq_ignore_ascii_case("server");
             }
             Err(e) => log::error!("Failed to lock update: {:?}", e),
         }

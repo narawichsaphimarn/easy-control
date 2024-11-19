@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use crate::application::services::screen_service::ScreenServiceApplication;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
+use crate::shared::constants::event_process_constant::EventProcess;
 use crate::shared::constants::rest_status_constant::ResponseMessage;
 use crate::shared::stores::screen_event_store::ScreenEventControl;
+use crate::shared::stores::step_control_store::StepControlStore;
 use crate::shared::types::response_type::ResponseStruct;
 use crate::shared::types::system_type::System;
 use crate::shared::utils::mapping::response_mapping::map_response;
@@ -11,10 +13,11 @@ use axum::extract;
 use axum::http::StatusCode;
 use axum::response;
 use axum::response::IntoResponse;
+use tower_http::follow_redirect::policy::PolicyExt;
 
 pub async fn screen_mapping(
     extract::Json(request): extract::Json<Vec<ScreenMappingRequest>>,
-    screen_event: Arc<ScreenEventControl>,
+    step_control: Arc<StepControlStore>,
 ) -> impl IntoResponse {
     match ScreenServiceApplication::screen_mapping_process(request).await {
         Ok(_) => {
@@ -24,7 +27,7 @@ pub async fn screen_mapping(
                 None,
                 None,
             );
-            screen_event.update_data(true).await;
+            step_control.send(EventProcess::Restart);
             (StatusCode::OK, response::Json(resp).into_response())
         }
         Err(s) => {
