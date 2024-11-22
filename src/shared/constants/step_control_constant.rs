@@ -5,6 +5,8 @@ use std::fmt::Formatter;
 pub enum StepControl {
     ServerLocal,
     ServerRemote,
+    ServerRemoteAgain,
+    STOP
 }
 
 impl fmt::Display for StepControl {
@@ -12,6 +14,8 @@ impl fmt::Display for StepControl {
         match self {
             StepControl::ServerLocal => write!(f, "local"),
             StepControl::ServerRemote => write!(f, "remote"),
+            StepControl::ServerRemoteAgain => write!(f, "again"),
+            StepControl::STOP => write!(f, "stop")
         }
     }
 }
@@ -21,6 +25,8 @@ impl StepControl {
         match step.to_lowercase().as_str() {
             "local" => StepControl::ServerLocal,
             "remote" => StepControl::ServerRemote,
+            "again" => StepControl::ServerRemoteAgain,
+            "stop" => StepControl::STOP,
             _ => StepControl::ServerLocal,
         }
     }

@@ -5,7 +5,7 @@ pub mod screen_event_store;
 pub mod step_control_store;
 
 pub mod stores {
-    use crate::shared::lib::lib_event::LibEvent;
+    use crate::shared::lib::lib_event;
     use crate::shared::stores::mouse_control_store::MouseControl;
     // use crate::shared::stores::mouse_event_store::MouseEventControl;
     use crate::shared::stores::role_event_store::RoleControl;

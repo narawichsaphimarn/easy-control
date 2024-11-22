@@ -1,33 +1,117 @@
+use crate::domain::pojo::screen_mapping_matrix_pojo::ScreenMappingMatrix;
+use crate::domain::pojo::screen_selector_pojo::ScreenSelector;
+use crate::shared::constants::step_control_constant::StepControl;
+use crate::shared::types::mouse_type::Mouse;
+use crate::shared::types::protocol_type::ProtocolEvent;
+use crate::shared::types::screen_type::Screen;
+use std::cell::RefCell;
 use std::ptr;
 use std::sync::Arc;
+use tokio::sync::watch::Receiver;
 use tokio::sync::Mutex;
+use winapi::ctypes::c_int;
 use winapi::shared::minwindef::{BOOL, LPARAM, LRESULT, UINT, WPARAM};
-use winapi::shared::windef::{HWND, HWND__, RECT};
+use winapi::shared::windef::{HHOOK, HWND, RECT};
+use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::libloaderapi::GetModuleHandleW;
-use winapi::um::wingdi::RGB;
 use winapi::um::winuser::{
-    ClipCursor, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetClientRect,
-    GetMessageW, LoadCursorW, PostQuitMessage, RegisterClassW, SetLayeredWindowAttributes,
-    SetWindowLongPtrW, ShowCursor, ShowWindow, TranslateMessage, CS_HREDRAW, CS_VREDRAW,
-    CW_USEDEFAULT, GWL_EXSTYLE, IDC_ARROW, LWA_COLORKEY, MSG, SW_SHOW, SW_SHOWMAXIMIZED,
-    WM_DESTROY, WM_MOUSEMOVE, WNDCLASSW, WS_EX_LAYERED, WS_OVERLAPPEDWINDOW,
+    CallNextHookEx, ClipCursor, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
+    EnumWindows, GetClientRect, GetKeyboardState, GetMessageW, GetSystemMetrics, IsWindow,
+    LoadCursorW, LoadIconW, PostQuitMessage, RegisterClassExW, RegisterClassW, SetWindowsHookExW,
+    ShowCursor, ShowWindow, ToUnicode, TranslateMessage, UnhookWindowsHookEx, CB_GETCOMBOBOXINFO,
+    CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, EVENT_SYSTEM_CAPTUREEND, GET_WHEEL_DELTA_WPARAM,
+    GET_XBUTTON_WPARAM, HWND_DESKTOP, IDC_ARROW, IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG,
+    PBT_APMBATTERYLOW, SC_KEYMENU, SC_MONITORPOWER, SC_SCREENSAVE, SM_CXSCREEN, SM_CYSCREEN,
+    SPI_SETACTIVEWINDOWTRACKING, SW_SHOW, VK_ESCAPE, VK_LMENU, VK_LWIN, VK_MENU, VK_RWIN, VK_TAB,
+    WH_KEYBOARD_LL, WM_DESTROY, WM_DISPLAYCHANGE, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN,
+    WM_LBUTTONUP, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SYSCOMMAND,
+    WM_SYSKEYDOWN, WM_SYSKEYUP, WM_TABLET_FIRST, WM_TABLET_LAST, WM_XBUTTONDOWN, WM_XBUTTONUP,
+    WNDCLASSEXW, WNDCLASSW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_OVERLAPPEDWINDOW, WS_POPUP,
+    WS_VISIBLE, XBUTTON1, XBUTTON2,
 };
 
 #[derive(Debug, Clone)]
-pub struct LibEvent {
+pub struct Window {
     pub off: Arc<Mutex<bool>>,
+    pub hook: Arc<RefCell<Option<HHOOK>>>,
 }
 
-impl LibEvent {
-    pub fn new() -> Self {
-        LibEvent {
+impl Window {
+    pub fn new() -> Arc<Self> {
+        Arc::new(Window {
             off: Arc::new(Mutex::new(true)),
-        }
+            hook: Arc::new(RefCell::new(None)),
+        })
     }
 }
 
+thread_local! {
+    static HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
+}
+
 #[cfg(target_os = "windows")]
-impl LibEvent {
+impl Window {
+    unsafe extern "system" fn keyboard_hook(
+        code: i32,
+        w_param: WPARAM,
+        l_param: LPARAM,
+    ) -> LRESULT {
+        // println!("Keyboard hook triggered! 00000"); // ดูว่าฟังก์ชันทำงานหรือไม่
+        if code >= 0 {
+            // println!("Keyboard hook triggered!"); // ดูว่าฟังก์ชันทำงานหรือไม่
+            let kb_struct = *(l_param as *const KBDLLHOOKSTRUCT);
+            if w_param as u32 == WM_SYSKEYDOWN {
+                // println!("Key down detected: vkCode = {}", kb_struct.vkCode);
+                if kb_struct.vkCode == VK_LMENU as u32 && Self::is_alt_pressed() {
+                    // println!("Alt + Tab pressed!");
+                    // Block Alt + Tab by not calling CallNextHookEx
+                    return 1;
+                }
+            }
+        }
+        CallNextHookEx(ptr::null_mut(), code, w_param, l_param)
+    }
+
+    fn is_alt_pressed() -> bool {
+        unsafe {
+            let alt_state = winapi::um::winuser::GetAsyncKeyState(VK_LMENU as i32) as i32;
+            let is_pressed = (alt_state & 0x0009) != 0;
+            println!("Alt state: {}, is_pressed: {}", alt_state, is_pressed);
+            is_pressed
+        }
+    }
+
+    pub fn set_keyboard_hook() -> HHOOK {
+        unsafe {
+            let hook = SetWindowsHookExW(
+                WH_KEYBOARD_LL,
+                Some(Self::keyboard_hook),
+                GetModuleHandleW(ptr::null()),
+                0,
+            );
+
+            if hook.is_null() {
+                panic!("Failed to set hook");
+            }
+            // HOOK.with(|hook_cell| {
+            //     *hook_cell.borrow_mut() = Some(hook); // เปลี่ยนค่าใน RefCell
+            // });
+            hook
+        }
+    }
+
+    pub fn unset_keyboard_hook(hook: HHOOK) {
+        unsafe {
+            // HOOK.with(|hook_cell| {
+            //     if let Some(hook) = *hook_cell.borrow() {
+            //         UnhookWindowsHookEx(hook as _);
+            //         *hook_cell.borrow_mut() = None; // ล้างค่า
+            //     }
+            // });
+            UnhookWindowsHookEx(hook as _);
+        }
+    }
+
     unsafe extern "system" fn window_proc(
         hwnd: HWND,
         msg: UINT,
@@ -41,8 +125,8 @@ impl LibEvent {
                 PostQuitMessage(0);
                 0
             }
-            WM_MOUSEMOVE => {
-                // คุณสามารถเพิ่มการกระทำอื่น ๆ ที่จะทำเมื่อเคอร์เซอร์เคลื่อนที่
+            WM_SYSKEYDOWN | WM_DISPLAYCHANGE => {
+                println!("Alt + Tab pressed!");
                 0
             }
             _ => DefWindowProcW(hwnd, msg, w_param, l_param),
@@ -58,83 +142,223 @@ impl LibEvent {
             .collect()
     }
 
-    pub async fn create_window(&self) -> HWND {
-        unsafe {
-            let mut value = self.off.lock().await;
-            *value = true;
-            let h_instance = GetModuleHandleW(ptr::null());
+    pub unsafe fn create_window_class(name: String) -> Vec<u16> {
+        let class_name = Self::to_string(name.as_str());
+        let h_instance = GetModuleHandleW(ptr::null());
+        let wnd_class = WNDCLASSEXW {
+            cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
+            style: CS_HREDRAW | CS_VREDRAW,
+            lpfnWndProc: Some(DefWindowProcW),
+            cbClsExtra: 0,
+            cbWndExtra: 0,
+            hInstance: h_instance,
+            hIcon: LoadIconW(h_instance, IDI_APPLICATION),
+            hCursor: LoadCursorW(h_instance, IDC_ARROW),
+            hbrBackground: std::ptr::null_mut(),
+            lpszMenuName: ptr::null(),
+            lpszClassName: class_name.as_ptr(),
+            hIconSm: LoadIconW(h_instance, IDI_APPLICATION),
+        };
 
-            let class_name = Self::to_string("my_window_class");
-
-            let wnd_class = WNDCLASSW {
-                style: CS_HREDRAW | CS_VREDRAW,
-                lpfnWndProc: Some(Self::window_proc),
-                hInstance: h_instance,
-                lpszClassName: class_name.as_ptr(),
-                hCursor: LoadCursorW(ptr::null_mut(), IDC_ARROW),
-                ..std::mem::zeroed()
-            };
-
-            RegisterClassW(&wnd_class);
-
-            let hwnd = CreateWindowExW(
-                0,
-                class_name.as_ptr(),
-                Self::to_string("My Window").as_ptr(),
-                WS_OVERLAPPEDWINDOW,
-                CW_USEDEFAULT,
-                CW_USEDEFAULT,
-                1920,
-                1080,
-                ptr::null_mut(),
-                ptr::null_mut(),
-                h_instance,
-                ptr::null_mut(),
-            );
-
-            // // ใช้ SetLayeredWindowAttributes เพื่อกำหนดให้หน้าต่างมีพื้นหลังโปร่งใส
-            // SetLayeredWindowAttributes(hwnd, RGB(0, 0, 0), 0, LWA_COLORKEY);
-            //
-            // // ตั้งค่า GWL_EXSTYLE เพื่อให้หน้าต่างมีลักษณะโปร่งใส
-            // SetWindowLongPtrW(hwnd, GWL_EXSTYLE, WS_EX_LAYERED.try_into().unwrap());
-
-            ShowWindow(hwnd, SW_SHOW);
-
-            // ซ่อนเคอร์เซอร์
-            ShowCursor(BOOL::from(true));
-
-            // กำหนดขอบเขตการเคลื่อนไหวของเคอร์เซอร์ให้อยู่ในหน้าต่าง
-            let mut rect: RECT = std::mem::zeroed();
-            GetClientRect(hwnd, &mut rect);
-            ClipCursor(&rect);
-            hwnd
+        if RegisterClassExW(&wnd_class) == 0 {
+            Self::destroy();
         }
+        class_name
     }
 
-    pub async fn run(self: Arc<Self>) {
+    pub unsafe fn create_window(class_name: Vec<u16>) -> HWND {
+        let h_instance = GetModuleHandleW(ptr::null());
+        let hwnd = CreateWindowExW(
+            WS_EX_LAYERED | WS_EX_TOOLWINDOW,
+            class_name.as_ptr(),
+            Self::to_string("SHARE_MOUSE").as_ptr(),
+            WS_POPUP,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            GetSystemMetrics(SM_CXSCREEN),
+            GetSystemMetrics(SM_CYSCREEN),
+            ptr::null_mut(),
+            ptr::null_mut(),
+            h_instance,
+            ptr::null_mut(),
+        );
+        // let hwnd = CreateWindowExW(
+        //     WS_EX_LAYERED | WS_EX_TOOLWINDOW,
+        //     class_name.as_ptr(),
+        //     Self::to_string("MyClass").as_ptr(),
+        //     WS_OVERLAPPEDWINDOW & !WS_VISIBLE,
+        //     CW_USEDEFAULT,
+        //     CW_USEDEFAULT,
+        //     GetSystemMetrics(SM_CXSCREEN),
+        //     GetSystemMetrics(SM_CYSCREEN),
+        //     ptr::null_mut(),
+        //     ptr::null_mut(),
+        //     GetModuleHandleW(std::ptr::null()),
+        //     ptr::null_mut(),
+        // );
+        hwnd
+    }
+
+    pub unsafe fn show_window(hwnd: &HWND) -> BOOL {
+        ShowWindow(*hwnd, SW_SHOW)
+    }
+
+    pub unsafe fn show_cursor(active: bool) -> c_int {
+        ShowCursor(BOOL::from(active))
+    }
+
+    pub unsafe fn get_rect(hwnd: &HWND) -> RECT {
+        let mut rect: RECT = std::mem::zeroed();
+        GetClientRect(*hwnd, &mut rect);
+        rect
+    }
+
+    pub unsafe fn lock_cursor(rect: &RECT) -> BOOL {
+        ClipCursor(rect)
+    }
+
+    pub unsafe fn get_message(msg: &mut MSG) -> BOOL {
+        GetMessageW(msg, ptr::null_mut(), 0, 0)
+    }
+
+    pub fn event(
+        f: fn(
+            Mouse,
+            &mut ProtocolEvent,
+            Screen,
+            String,
+            Vec<ScreenMappingMatrix>,
+            Vec<ScreenSelector>,
+        ) -> bool,
+        mut event: &mut ProtocolEvent,
+        screen: Screen,
+        target_mac: String,
+        s_screen_mapping: Vec<ScreenMappingMatrix>,
+        s_screen_selector: Vec<ScreenSelector>,
+    ) {
         unsafe {
-            let hwnd = self.create_window().await;
-            self.wait();
-            DestroyWindow(hwnd);
-        }
-    }
-
-    pub unsafe fn get_message(&self, mut msg: MSG) -> BOOL {
-        GetMessageW(&mut msg, ptr::null_mut(), 0, 0)
-    }
-
-    pub async fn wait(&self) {
-        unsafe {
-            let msg: MSG = std::mem::zeroed();
-            while self.get_message(msg) > 0 && *self.off.lock().await == false {
+            let mut msg: MSG = std::mem::zeroed();
+            while Self::get_message(&mut msg) > 0 {
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);
+                // println!("Mouse msg: {}", msg.message);
+                match msg.message {
+                    WM_MOUSEMOVE => {
+                        // println!("Mouse moved to position: ({}, {})", msg.pt.x, msg.pt.y);
+                        if f(
+                            Mouse {
+                                x: msg.pt.x as f64,
+                                y: msg.pt.y as f64,
+                            },
+                            event,
+                            screen,
+                            target_mac.clone(),
+                            s_screen_mapping.clone(),
+                            s_screen_selector.clone(),
+                        ) {
+                            break;
+                        }
+                    }
+                    // WM_LBUTTONDOWN => {
+                    //     println!("Mouse left button pressed");
+                    // }
+                    // WM_LBUTTONUP => {
+                    //     println!("Mouse left button released");
+                    // }
+                    // WM_RBUTTONDOWN => {
+                    //     println!("Mouse right button pressed");
+                    // }
+                    // WM_RBUTTONUP => {
+                    //     println!("Mouse right button released");
+                    // }
+                    // WM_MOUSEWHEEL => {
+                    //     let delta = GET_WHEEL_DELTA_WPARAM(msg.wParam) as i16;
+                    //     if delta > 0 {
+                    //         println!("Mouse wheel scrolled up: {}", delta);
+                    //     } else {
+                    //         println!("Mouse wheel scrolled down: {}", delta);
+                    //     }
+                    // }
+                    // WM_XBUTTONUP => {
+                    //     let xbutton = GET_XBUTTON_WPARAM(msg.wParam);
+                    //     match xbutton {
+                    //         XBUTTON1 => println!("XButton1 (Back) pressed"),
+                    //         XBUTTON2 => println!("XButton2 (Forward) pressed"),
+                    //         _ => println!("Unknown XButton pressed"),
+                    //     }
+                    // }
+                    WM_KEYDOWN => {
+                        // println!("Key pressed: {}", msg.wParam);
+                        if let Some(k) = Self::handle_key_event(&msg) {
+                            if k.eq_ignore_ascii_case("s") {
+                                break;
+                            }
+                        }
+                    }
+                    WM_KEYUP => {
+                        // println!("Key released: {}", msg.wParam);
+                        Self::handle_key_event(&msg);
+                    }
+                    _ => {}
+                }
             }
         }
     }
 
-    pub async fn destroy(self: Arc<Self>) {
-        let mut value = self.off.lock().await;
-        *value = false;
+    fn handle_key_event(msg: &MSG) -> Option<String> {
+        let vk_code = msg.wParam as u32; // Virtual key code
+        let mut buffer = [0u16; 4]; // Buffer for Unicode characters
+        let mut key_state = [0u8; 256]; // Keyboard state array
+
+        unsafe {
+            // Get the current keyboard state
+            if GetKeyboardState(key_state.as_mut_ptr()) != 0 {
+                // Translate the virtual key code into a Unicode character
+                let chars_copied = ToUnicode(
+                    vk_code,
+                    (msg.lParam >> 16) as u32 & 0xFF, // Scan code from lParam
+                    key_state.as_ptr(),
+                    buffer.as_mut_ptr(),
+                    buffer.len() as i32,
+                    0,
+                );
+
+                if chars_copied > 0 {
+                    // Convert the UTF-16 result to a Rust String
+                    let result = String::from_utf16_lossy(&buffer[..chars_copied as usize]);
+                    // println!("Key pressed: {}", result);
+                    Some(result)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+    }
+
+    unsafe extern "system" fn destroy_window_callback(hwnd: HWND, _: isize) -> i32 {
+        // Check if the window is valid
+        if IsWindow(hwnd).is_positive() {
+            DestroyWindow(hwnd);
+        }
+        // Continue enumeration
+        1 // TRUE
+    }
+
+    fn destroy_all_windows() {
+        unsafe {
+            EnumWindows(Some(Self::destroy_window_callback), 0);
+        }
+    }
+
+    pub fn destroy() {
+        // unsafe {
+        //     EnumWindows
+        //     if DestroyAllWindows(*hwnd) == 0 {
+        //         println!("Failed to destroy window: {}", GetLastError());
+        //     }
+        // }
+        Self::destroy_all_windows();
     }
 }
