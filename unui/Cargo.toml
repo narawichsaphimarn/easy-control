@@ -1,0 +1,33 @@
+[package]
+name = "share-mouse"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winapi = { version = "0.3", features = ["winuser", "windef", "minwindef", "winnt", "libloaderapi", "wingdi"] }
+log = "0.4"
+dotenvy = "0.15"
+axum = "0.7.7"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6.1", features = ["full"] }
+serde_json = { version = "1.0" }
+serde = { version = "1.0.213", features = ["derive"] }
+telnet = "0.2.2"
+ipconfig = "0.3.2"
+ping = "0.5.2"
+hostname = "0.4.0"
+quinn = "0.11.5"
+reqwest = { version = "0.12.8", features = ["json"] }
+rdev = "0.5.3"
+pnet = "0.35.0"
+chrono = "0.4"
+sqlite = "0.36.1"
+num_cpus = "1.16.0"
+bevy_color = "0.14.3"
+
+[package.metadata.scripts]
+run = "cargo run"
+check = "cargo check"
+build = "cargo build"
+release = "cargo build --release"
+reformat = "cargo fmt"
