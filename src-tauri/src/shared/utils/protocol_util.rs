@@ -2,7 +2,6 @@ use crate::shared::constants::protocol_constant::InterfaceDesc;
 use crate::shared::utils::convert::byte_convert::convert_option_byte_to_string_for_mac;
 #[cfg(target_os = "windows")]
 use ipconfig;
-use log;
 use ping;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use pnet::datalink;
@@ -267,7 +266,7 @@ impl ProtocolUtil {
         let mut jhs = Vec::with_capacity(255);
         for i in 2..=255 {
             let ip = format!("{}.{}", base_ip, i);
-            log::debug!("Start ping IP: {}", ip);
+            // log::debug!("Start ping IP: {}", ip);
             let _semaphore = semaphore.clone();
             let jh = task::spawn(async move {
                 let permit = _semaphore.acquire_owned().await.unwrap();

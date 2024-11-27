@@ -1,4 +1,6 @@
 pub mod file_store {
+    use std::path::Display;
+
     use crate::shared::types::file_store_type::{
         ScreenMappingMatrix, ScreenMappingRefer, ScreenSelector, Setting,
     };
@@ -15,8 +17,8 @@ pub mod file_store {
     }
 
     impl FileStore {
-        pub async fn init() -> Self {
-            Self::get_file(String::from("share-mouse.conf.json")).await
+        pub async fn init() -> FileStore {
+            Self::handle_new_file(String::from("share-mouse.conf.json")).await
         }
 
         fn new() -> FileStore {
@@ -239,8 +241,8 @@ pub mod file_store {
             root
         }
 
-        pub async fn get_file(file_name: String) -> FileStore {
-            let mut file = File::open(file_name.clone()).await.map_err(|e| e.to_string());
+        async fn handle_new_file(file_name: String) -> FileStore {
+            let file = Self::get_file(file_name.clone()).await;
             match file {
                 Ok(mut file) => {
                     let mut contents = String::new();
@@ -259,18 +261,47 @@ pub mod file_store {
                 Err(_) => {
                     let file = File::create(file_name).await.map_err(|e| e.to_string());
                     match file {
-                        Ok(mut file) => {
+                        Ok(file) => {
                             let file_store: FileStore = FileStore::new();
-                            let data = serde_json::to_string(&file_store).unwrap();
-                            let _ = file
-                                .write_all(data.as_bytes())
-                                .await
-                                .map_err(|e| e.to_string());
+                            Self::write_file_store(file, file_store.clone()).await;
                             file_store
                         }
                         Err(e) => panic!("Error: {}", e),
                     }
                 }
+            }
+        }
+
+        pub async fn get_file(file_name: String) -> Result<File, String> {
+            File::open(file_name.clone())
+                .await
+                .map_err(|e| e.to_string())
+        }
+
+        pub async fn write_file_store(mut file: File, data: FileStore) {
+            let data = serde_json::to_string(&data).unwrap();
+            let result = file
+                .write_all(data.as_bytes())
+                .await
+                .map_err(|e| e.to_string());
+            match result {
+                Ok(_) => {}
+                Err(e) => panic!("Error: {}", e),
+            }
+        }
+
+        pub async fn write_file(data: FileStore) -> Result<(), String> {
+            let mut file = Self::get_file(String::from("share-mouse.conf.json"))
+                .await
+                .map_err(|e| e.to_string())?;
+            let data = serde_json::to_string(&data).unwrap();
+            let result = file
+                .write_all(data.as_bytes())
+                .await
+                .map_err(|e| e.to_string());
+            match result {
+                Ok(_) => Ok(()),
+                Err(e) => panic!("Error: {}", e),
             }
         }
     }

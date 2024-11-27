@@ -16,7 +16,7 @@ pub async fn sent_event(
         constants::rest_client_constant::MouseEvent::Port as u64,
         constants::rest_client_constant::MouseEvent::Path.to_string()
     );
-    log::debug!("Create screen matrix request url : {}", url);
+    // log::debug!("Create screen matrix request url : {}", url);
     let resp: Result<String, String> = RestClientInfrastructure::post(
         url,
         request,
@@ -25,7 +25,7 @@ pub async fn sent_event(
     .await;
     match resp {
         Ok(s) => {
-            log::debug!("Create screen matrix response: {:?}", s);
+            // log::debug!("Create screen matrix response: {:?}", s);
             Ok(())
         }
         Err(e) => Err(e),

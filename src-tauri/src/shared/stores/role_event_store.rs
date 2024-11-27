@@ -40,7 +40,7 @@ impl RoleControl {
             }
             status
         } else {
-            String::from("RESTART")
+            String::from("CLIENT")
         }
     }
 
@@ -62,7 +62,9 @@ impl RoleControl {
             Ok(mut data) => {
                 *data = Self::check_role().eq_ignore_ascii_case("server");
             }
-            Err(e) => log::error!("Failed to lock update: {:?}", e),
+            Err(e) => {
+                // log::error!("Failed to lock update: {:?}", e)
+            }
         }
     }
 }

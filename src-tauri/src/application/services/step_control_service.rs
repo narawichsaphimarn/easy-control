@@ -1,12 +1,8 @@
-use crate::shared::constants::event_process_constant::EventProcess;
-use crate::shared::stores::role_event_store::RoleControl;
 // use crate::shared::stores::stores::Stores;
 use crate::application::services::server_step_service::ServerStepServiceApplication;
-use crate::shared::stores::stores_v2::StoresV2;
-use crate::shared::utils::mouse_util::MouseUtil;
+use crate::shared::constants::event_process_constant::EventProcess;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
-use crate::shared::constants::step_control_constant::StepControl;
 
 #[derive(Debug, Clone)]
 pub struct StepControlServiceApplication {
@@ -26,7 +22,7 @@ impl StepControlServiceApplication {
             tokio::select! {
                 _ = async {}, if self.stores.step_control.receive().await.to_string().eq_ignore_ascii_case
                     (&"RESTART")  => {
-                    log::debug!("RESTART");
+                    // log::debug!("RESTART");
                     if !jhs.is_empty() {
                         jhs.iter().for_each(|jh: &JoinHandle<()>| jh.abort());
                     }
@@ -35,10 +31,10 @@ impl StepControlServiceApplication {
                     self.stores.step_control.send(EventProcess::from_string(role.as_str()));
                 }
                 _ = async {}, if self.stores.step_control.receive().await.to_string().eq_ignore_ascii_case(&"CLIENT")  => {
-                    log::debug!("Client");
+                    // log::debug!("Client");
                 }
                 _ = async {}, if self.stores.step_control.receive().await.to_string().eq_ignore_ascii_case(&"SERVER")  => {
-                    log::debug!("Server");
+                    // log::debug!("Server");
                     let jh: JoinHandle<_> = tokio::task::spawn(server_step.clone().run());
                     jhs.push(jh);
                 }

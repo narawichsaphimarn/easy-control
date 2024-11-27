@@ -1,4 +1,4 @@
-use crate::infrastructure::database::sqlite_database::{SqliteDBInfra, SqliteDBInfraInit};
+use crate::infrastructure::database::sqlite::sqlite_database::{SqliteDBInfra, SqliteDBInfraInit};
 use sqlite::Error;
 
 impl SqliteDBInfraInit for SqliteDBInfra {

@@ -1,10 +1,4 @@
 use crate::application::services::protocol_service::ProtocolServiceApplication;
-use crate::domain::pojo::screen_mapping_matrix_pojo;
-use crate::domain::pojo::screen_mapping_matrix_pojo::ScreenMappingMatrix;
-use crate::domain::pojo::screen_selector_pojo::ScreenSelector;
-use crate::domain::repositories::screen_mapping_matrix_repository::ScreenMappingMetricRepository;
-use crate::domain::repositories::screen_selector_repository::ScreenSelectorRepository;
-use crate::shared::constants::screen_constant::PositionAtEdge;
 use crate::shared::constants::step_control_constant::StepControl;
 use crate::shared::lib::lib_event::Window;
 use crate::shared::types::mouse_type::Mouse;
@@ -13,15 +7,13 @@ use crate::shared::types::screen_type::Screen;
 use crate::shared::utils::mouse_util::MouseUtil;
 use crate::shared::utils::protocol_util::ProtocolUtil;
 use crate::shared::utils::screen_util::ScreenUtil;
-use std::cell::RefCell;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use tokio::sync::watch;
 use tokio::sync::watch::{Receiver, Sender};
-use tokio::sync::{watch, Mutex};
-use tokio::task::JoinHandle;
-use winapi::shared::windef::{HHOOK, HWND, HWND__};
+use winapi::shared::windef::HWND__;
 
 #[derive(Debug, Clone)]
 pub struct ServerStepServiceApplication {
@@ -33,7 +25,11 @@ pub struct ServerStepServiceApplication {
 impl ServerStepServiceApplication {
     pub fn new() -> Arc<Self> {
         let (step_tx, step_rx) = watch::channel(StepControl::ServerLocal);
-        Arc::new(ServerStepServiceApplication { step_tx, step_rx, cancel_flag: Arc::new(AtomicBool::new(false)), })
+        Arc::new(ServerStepServiceApplication {
+            step_tx,
+            step_rx,
+            cancel_flag: Arc::new(AtomicBool::new(false)),
+        })
     }
 
     pub fn stop_tasks(&self) {
@@ -65,7 +61,7 @@ impl ServerStepServiceApplication {
     }
 
     pub async fn local(&self, mut event: &mut ProtocolEvent) {
-        log::debug!("Start LOCAL");
+        // log::debug!("Start LOCAL");
         let screen = ScreenUtil::get_screen_metrics();
         let (my_mc, ip) = Self::get_mac();
         event.source_width = screen.width;
@@ -73,12 +69,12 @@ impl ServerStepServiceApplication {
         event.source_mac = my_mc.clone().to_string();
         event.source_ip = ip.clone().to_string();
         Self::handle_loop_switch_screen(&mut event, screen, my_mc);
-        log::debug!("End LOCAL | Event: {:?}", event);
+        // log::debug!("End LOCAL | Event: {:?}", event);
         let _ = self.step_tx.send(StepControl::ServerRemote);
     }
 
     pub async fn remote(&self, mut event: &mut ProtocolEvent, class: Vec<u16>) {
-        log::debug!("Start REMOTE");
+        // log::debug!("Start REMOTE");
         let screen = Screen {
             width: event.source_width,
             height: event.source_height,
@@ -102,12 +98,12 @@ impl ServerStepServiceApplication {
                 s_screen_selector,
             );
         }
-        log::debug!("End REMOTE | Event: {:?}", event);
+        // log::debug!("End REMOTE | Event: {:?}", event);
         self.switch_screen(&mut event);
     }
 
     pub async fn again(&self, mut event: &mut ProtocolEvent) {
-        log::debug!("Start REMOTE AGAIN");
+        // log::debug!("Start REMOTE AGAIN");
         let screen = Screen {
             width: event.source_width,
             height: event.source_height,
@@ -126,7 +122,7 @@ impl ServerStepServiceApplication {
                 s_screen_selector,
             );
         }
-        log::debug!("End  REMOTE AGAIN | Event: {:?}", event);
+        // log::debug!("End  REMOTE AGAIN | Event: {:?}", event);
         self.switch_screen(&mut event);
     }
 

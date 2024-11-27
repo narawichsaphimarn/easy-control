@@ -1,3 +1,3 @@
-export const Server = () => {
-  return <h1>Server</h1>;
+export const Client = () => {
+  return <h1>Client</h1>;
 };

@@ -15,7 +15,7 @@ pub async fn update_screen_matrix(
         ScreenMappingMatrix::Port as u64,
         ScreenMappingMatrix::Path.to_string()
     );
-    log::debug!("Create screen matrix request url : {}", url);
+    // log::debug!("Create screen matrix request url : {}", url);
     let resp: Result<ResponseStruct<Vec<ScreenMappingRequest>>, String> =
         RestClientInfrastructure::put(
             url,
@@ -25,7 +25,7 @@ pub async fn update_screen_matrix(
         .await;
     match resp {
         Ok(s) => {
-            log::debug!("Create screen matrix response: {:?}", s);
+            // log::debug!("Create screen matrix response: {:?}", s);
             Ok(())
         }
         Err(e) => Err(e),

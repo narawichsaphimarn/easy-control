@@ -1,8 +1,7 @@
 use sqlite::Error;
 
-use crate::{
-    domain::pojo::setting_pojo::Setting, infrastructure::database::sqlite_database::SqliteDBInfra,
-};
+use crate::domain::pojo::setting_pojo::Setting;
+use crate::infrastructure::database::sqlite::sqlite_database::SqliteDBInfra;
 
 pub struct SettingRepository;
 

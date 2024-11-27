@@ -1,7 +1,3 @@
-use crate::domain::{
-    pojo::setting_pojo::Setting, repositories::setting_repository::SettingRepository,
-};
-
 pub struct SettingServiceDomain;
 
 impl SettingServiceDomain {
@@ -9,7 +5,7 @@ impl SettingServiceDomain {
         match SettingRepository::save(key, group, value) {
             Ok(data) => Ok(data),
             Err(e) => {
-                log::error!("Error step save {}", e);
+                // log::error!("Error step save {}", e);
                 Ok(Vec::new())
             }
         }
@@ -19,7 +15,7 @@ impl SettingServiceDomain {
         match SettingRepository::update_value(key, group, value) {
             Ok(data) => Ok(data),
             Err(e) => {
-                log::error!("Error step update {}", e);
+                // log::error!("Error step update {}", e);
                 Ok(Vec::new())
             }
         }

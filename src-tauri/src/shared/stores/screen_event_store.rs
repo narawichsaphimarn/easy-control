@@ -23,7 +23,9 @@ impl ScreenEventControl {
             Ok(mut data) => {
                 *data = status;
             }
-            Err(e) => log::error!("Failed to lock update: {:?}", e),
+            Err(e) => {
+                // log::error!("Failed to lock update: {:?}", e)
+            }
         }
     }
 }

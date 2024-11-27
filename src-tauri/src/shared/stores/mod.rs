@@ -5,12 +5,6 @@ pub mod screen_event_store;
 pub mod step_control_store;
 
 pub mod stores {
-    use crate::shared::lib::lib_event;
-    use crate::shared::stores::mouse_control_store::MouseControl;
-    // use crate::shared::stores::mouse_event_store::MouseEventControl;
-    use crate::shared::stores::role_event_store::RoleControl;
-    use crate::shared::stores::screen_event_store::ScreenEventControl;
-    use std::sync::Arc;
 
     // #[derive(Debug, Clone)]
     // pub struct Stores {
@@ -35,7 +29,6 @@ pub mod stores {
 }
 
 pub mod stores_v2 {
-    use crate::shared::stores::role_event_store::RoleControl;
     use crate::shared::stores::step_control_store::StepControlStore;
     use std::sync::Arc;
 
@@ -45,9 +38,27 @@ pub mod stores_v2 {
     }
 
     impl StoresV2 {
-        pub async fn new() -> Arc<StoresV2> {
+        pub fn new() -> Arc<StoresV2> {
             Arc::new(StoresV2 {
                 step_control: Arc::new(StepControlStore::new()),
+            })
+        }
+    }
+}
+
+pub mod stores_v3 {
+    use crate::shared::stores::step_control_store::StepControlStoreV2;
+    use std::sync::Arc;
+
+    #[derive(Debug, Clone)]
+    pub struct StoresV3 {
+        pub step_control: Arc<StepControlStoreV2>,
+    }
+
+    impl StoresV3 {
+        pub fn new() -> Arc<StoresV3> {
+            Arc::new(StoresV3 {
+                step_control: Arc::new(StepControlStoreV2::new()),
             })
         }
     }

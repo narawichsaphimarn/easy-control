@@ -1,5 +1,5 @@
 use crate::domain::pojo::screen_mapping_matrix_pojo::ScreenMappingMatrix;
-use crate::infrastructure::database::sqlite_database::SqliteDBInfra;
+use crate::infrastructure::database::sqlite::sqlite_database::SqliteDBInfra;
 use sqlite::Error;
 
 pub struct ScreenMappingMetricRepository;

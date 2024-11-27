@@ -1,28 +1,27 @@
 use std::sync::Arc;
 
 use crate::presentation::controllers::protocol_controller::ping;
-use crate::presentation::controllers::role_controller::update_role;
-use crate::presentation::controllers::screen_controller::{screen_mapping, screen_mapping_update};
-use crate::presentation::controllers::{
-    actuator_controller::actuator, protocol_controller::get_machine,
-    system_controller::get_system_detail,
+use crate::presentation::controllers::screen_controller::screen_mapping_update;
+use crate::presentation::controllers::system_controller::get_system_detail;
+use crate::{
+    infrastructure::database::store_file::file_store::FileStore,
+    presentation::controllers::actuator_controller::actuator,
 };
-// use crate::shared::stores::stores::Stores;
-use crate::shared::stores::stores_v2::StoresV2;
 use axum::{
     http::StatusCode,
     routing::{get, post, put},
     Router,
 };
+use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct AxumRouter {
-    pub stores: Arc<StoresV2>,
+    pub filestore: Arc<Mutex<FileStore>>,
 }
 
 impl AxumRouter {
-    pub fn new(stores: Arc<StoresV2>) -> Self {
-        AxumRouter { stores }
+    pub fn new(filestore: Arc<Mutex<FileStore>>) -> Self {
+        AxumRouter { filestore }
     }
 
     async fn fallback() -> (StatusCode, &'static str) {
@@ -32,22 +31,13 @@ impl AxumRouter {
     pub fn route(&self) -> Router {
         let app: Router<_> = Router::new()
             .route("/api/status", get(actuator))
-            .route("/api/v1/check-machine", get(get_machine))
             .route("/api/v1/system-detail", get(get_system_detail))
             .route("/api/v1/ping", get(ping))
             .route(
                 "/api/v1/screen-matrix",
-                post({
-                    let step_control = Arc::clone(&self.stores.step_control);
-                    move |body| screen_mapping(body, step_control)
-                }),
-            )
-            .route("/api/v1/screen-matrix", put(screen_mapping_update))
-            .route(
-                "/api/v1/update-role",
-                get({
-                    let step_control = Arc::clone(&self.stores.step_control);
-                    move |query| update_role(query, step_control)
+                put({
+                    let store = Arc::clone(&self.filestore);
+                    move |body| screen_mapping_update(body, store)
                 }),
             )
             .fallback(Self::fallback);

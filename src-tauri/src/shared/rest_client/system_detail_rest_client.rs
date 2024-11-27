@@ -17,13 +17,13 @@ pub async fn get_system_detail(ip: String) -> Result<Option<System>, String> {
         SystemDetail::Path.to_string(),
         ip
     );
-    log::debug!("Get system detail request url : {}", url);
+    // log::debug!("Get system detail request url : {}", url);
     let resp: Result<ResponseStruct<System>, String> =
         RestClientInfrastructure::get(url, Duration::from_millis(SystemDetail::Timeout as u64))
             .await;
     match resp {
         Ok(s) => {
-            log::debug!("Get system detail response: {:?}", s);
+            // log::debug!("Get system detail response: {:?}", s);
             Ok(s.data)
         }
         Err(e) => Err(e),

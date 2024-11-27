@@ -29,9 +29,13 @@ impl MouseControl {
         match self.socket.try_lock() {
             Ok(data) => match data.connect(addr.as_str().to_owned() + ":8080").await {
                 Ok(_) => {}
-                Err(e) => log::debug!("Failed to lock update: {:?}", e),
+                Err(e) => {
+                    // log::debug!("Failed to lock update: {:?}", e)
+                }
             },
-            Err(e) => log::debug!("Failed to lock update: {:?}", e),
+            Err(e) => {
+                // log::debug!("Failed to lock update: {:?}", e)
+            }
         }
     }
 
@@ -42,9 +46,13 @@ impl MouseControl {
                 .await
             {
                 Ok(_) => {}
-                Err(e) => log::debug!("Failed to send: {:?}", e),
+                Err(e) => {
+                    // log::debug!("Failed to send: {:?}", e)
+                }
             },
-            Err(e) => log::debug!("Failed to lock update: {:?}", e),
+            Err(e) => {
+                // log::debug!("Failed to lock update: {:?}", e)
+            }
         }
     }
 

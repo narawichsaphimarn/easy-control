@@ -6,7 +6,7 @@ pub enum StepControl {
     ServerLocal,
     ServerRemote,
     ServerRemoteAgain,
-    STOP
+    STOP,
 }
 
 impl fmt::Display for StepControl {
@@ -15,7 +15,7 @@ impl fmt::Display for StepControl {
             StepControl::ServerLocal => write!(f, "local"),
             StepControl::ServerRemote => write!(f, "remote"),
             StepControl::ServerRemoteAgain => write!(f, "again"),
-            StepControl::STOP => write!(f, "stop")
+            StepControl::STOP => write!(f, "stop"),
         }
     }
 }

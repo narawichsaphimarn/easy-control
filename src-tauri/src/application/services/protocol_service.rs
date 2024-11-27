@@ -10,17 +10,17 @@ pub struct ProtocolServiceApplication;
 impl ProtocolServiceApplication {
     pub async fn check_machine() -> Result<Vec<System>, String> {
         let ips: (String, String) = ProtocolUtil::get_addrs();
-        log::debug!("ips  wlan : {}, lan: {}", ips.0, ips.1);
+        // log::debug!("ips  wlan : {}, lan: {}", ips.0, ips.1);
         let (select_ip, unselect_ip) = Self::select_ip(ips);
-        log::debug!(
-            "Select ip : {} | UnSelect ip: {}",
-            select_ip.clone(),
-            unselect_ip.clone()
-        );
+        // log::debug!(
+        //     "Select ip : {} | UnSelect ip: {}",
+        //     select_ip.clone(),
+        //     unselect_ip.clone()
+        // );
         let ip = Self::slice_ip(select_ip.clone());
         let mut ips_active = ProtocolUtil::scan_network(&ip).await;
         ips_active.retain(|ip| ip != &unselect_ip);
-        log::debug!("IPS Active : {:?}", ips_active);
+        // log::debug!("IPS Active : {:?}", ips_active);
         Ok(Self::combine_data_ip_active(ips_active, select_ip.clone()).await)
     }
 
@@ -34,7 +34,7 @@ impl ProtocolServiceApplication {
                         result.push(r);
                     }
                     Err(s) => {
-                        log::error!("Get system detail error: {}", s);
+                        // log::error!("Get system detail error: {}", s);
                     }
                 }
             } else {
@@ -54,7 +54,9 @@ impl ProtocolServiceApplication {
             if let Ok(r) = handle.await {
                 match r {
                     Ok(res) => result.push(res.unwrap()),
-                    Err(s) => log::error!("Get system detail error: {}", s),
+                    Err(s) => {
+                        // log::error!("Get system detail error: {}", s);
+                    }
                 }
             }
         }

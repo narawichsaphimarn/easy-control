@@ -1,33 +1,23 @@
-use crate::domain::pojo::screen_mapping_matrix_pojo::ScreenMappingMatrix;
-use crate::domain::pojo::screen_selector_pojo::ScreenSelector;
-use crate::shared::constants::step_control_constant::StepControl;
+use crate::shared::types::file_store_type::{ScreenMappingMatrix, ScreenSelector};
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
 use std::cell::RefCell;
 use std::ptr;
 use std::sync::Arc;
-use tokio::sync::watch::Receiver;
 use tokio::sync::Mutex;
 use winapi::ctypes::c_int;
 use winapi::shared::minwindef::{BOOL, LPARAM, LRESULT, UINT, WPARAM};
 use winapi::shared::windef::{HHOOK, HWND, RECT};
-use winapi::um::errhandlingapi::GetLastError;
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::winuser::{
     CallNextHookEx, ClipCursor, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
     EnumWindows, GetClientRect, GetKeyboardState, GetMessageW, GetSystemMetrics, IsWindow,
-    LoadCursorW, LoadIconW, PostQuitMessage, RegisterClassExW, RegisterClassW, SetWindowsHookExW,
-    ShowCursor, ShowWindow, ToUnicode, TranslateMessage, UnhookWindowsHookEx, CB_GETCOMBOBOXINFO,
-    CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, EVENT_SYSTEM_CAPTUREEND, GET_WHEEL_DELTA_WPARAM,
-    GET_XBUTTON_WPARAM, HWND_DESKTOP, IDC_ARROW, IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG,
-    PBT_APMBATTERYLOW, SC_KEYMENU, SC_MONITORPOWER, SC_SCREENSAVE, SM_CXSCREEN, SM_CYSCREEN,
-    SPI_SETACTIVEWINDOWTRACKING, SW_SHOW, VK_ESCAPE, VK_LMENU, VK_LWIN, VK_MENU, VK_RWIN, VK_TAB,
-    WH_KEYBOARD_LL, WM_DESTROY, WM_DISPLAYCHANGE, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN,
-    WM_LBUTTONUP, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SYSCOMMAND,
-    WM_SYSKEYDOWN, WM_SYSKEYUP, WM_TABLET_FIRST, WM_TABLET_LAST, WM_XBUTTONDOWN, WM_XBUTTONUP,
-    WNDCLASSEXW, WNDCLASSW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_OVERLAPPEDWINDOW, WS_POPUP,
-    WS_VISIBLE, XBUTTON1, XBUTTON2,
+    LoadCursorW, LoadIconW, PostQuitMessage, RegisterClassExW, SetWindowsHookExW, ShowCursor,
+    ShowWindow, ToUnicode, TranslateMessage, UnhookWindowsHookEx, CS_HREDRAW, CS_VREDRAW,
+    CW_USEDEFAULT, IDC_ARROW, IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG, SM_CXSCREEN, SM_CYSCREEN,
+    SW_SHOW, VK_LMENU, WH_KEYBOARD_LL, WM_DESTROY, WM_DISPLAYCHANGE, WM_KEYDOWN, WM_KEYUP,
+    WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_POPUP,
 };
 
 #[derive(Debug, Clone)]
