@@ -14,7 +14,7 @@ impl SystemUtil {
                 // log::debug!("Hostname: {}", name.to_string_lossy());
                 Some(name.to_string_lossy().into_owned())
             }
-            Err(e) => {
+            Err(_) => {
                 // log::debug!("Failed to get hostname: {}", e);
                 None
             }

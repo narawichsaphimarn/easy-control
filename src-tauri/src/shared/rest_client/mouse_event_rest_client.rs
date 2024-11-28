@@ -24,7 +24,7 @@ pub async fn sent_event(
     )
     .await;
     match resp {
-        Ok(s) => {
+        Ok(_) => {
             // log::debug!("Create screen matrix response: {:?}", s);
             Ok(())
         }

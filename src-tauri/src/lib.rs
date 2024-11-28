@@ -1,8 +1,11 @@
-use crate::presentation::routers::tauri_command::{get_role, get_system_detail, scan_machine};
+use crate::presentation::routers::tauri_command::{
+    get_role, get_system_detail, scan_machine, switch_row,
+};
 use crate::shared::stores::setting_json::Settings;
 use crate::shared::stores::setting_mapping_refer_json::SettingMappingRef;
 use crate::shared::stores::store_json::Stores;
 use infrastructure::api::axum_config::AxumInit;
+use presentation::routers::tauri_command::{get_screen_selector, set_machine};
 use std::{env, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -23,7 +26,14 @@ pub async fn run() {
     tauri::Builder::default()
         .manage(Arc::clone(&store))
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![scan_machine, get_role, get_system_detail])
+        .invoke_handler(tauri::generate_handler![
+            scan_machine,
+            get_role,
+            get_system_detail,
+            switch_row,
+            set_machine,
+            get_screen_selector
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

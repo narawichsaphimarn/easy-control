@@ -1,7 +1,7 @@
 use crate::shared::types::file_store_type::{ScreenMappingMatrix, ScreenSelector};
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
-use tokio::fs::File;
+use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -101,22 +101,21 @@ impl Stores {
     }
 
     pub async fn write_file(data: Stores) -> Result<(), String> {
-        let file = Self::get_file().await.map_err(|e| e.to_string());
-        match file {
-            Ok(mut file) => {
-                let data = serde_json::to_string(&data).unwrap();
-                let result = file
-                    .write_all(data.as_bytes())
-                    .await
-                    .map_err(|e| e.to_string());
-                match result {
-                    Ok(_) => Ok(()),
-                    Err(e) => panic!("Error: {}", e),
-                }
-            }
-            Err(e) => {
-                panic!("{:?}", e);
-            }
+        let mut file = OpenOptions::new()
+            .write(true) // Open for writing
+            .truncate(true) // Truncate the file to 0 bytes
+            .open(NANE.clone())
+            .await
+            .map_err(|e| e.to_string())?;
+        let data = serde_json::to_string(&data).unwrap();
+        let result = file
+            .write_all(data.as_bytes())
+            .await
+            .map_err(|e| e.to_string());
+        let _ = file.flush().await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(e) => panic!("Error: {}", e),
         }
     }
 }

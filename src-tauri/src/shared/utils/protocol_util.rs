@@ -70,7 +70,7 @@ impl ProtocolUtil {
                     } else if adapter.if_type() == ipconfig::IfType::EthernetCsmacd
                         && adapter
                             .friendly_name()
-                        .eq_ignore_ascii_case(&InterfaceDesc::Ethernet.to_string())
+                            .eq_ignore_ascii_case(&InterfaceDesc::Ethernet.to_string())
                         && lan_addrs.is_empty()
                     {
                         // println!("LAN adapter {} and IPv4 {}", adapter.friendly_name(), ip);

@@ -4,7 +4,6 @@ import { Navigate } from "./Navigate";
 import {invoke} from "@tauri-apps/api/core";
 
 function App() {
-  // const [greetMsg, setGreetMsg] = useState("");
   const [role, setRole] = useState<string>("");
   useEffect(() => {
     const link = document.createElement("link");

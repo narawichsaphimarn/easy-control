@@ -7,17 +7,17 @@ use std::ptr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use winapi::ctypes::c_int;
-use winapi::shared::minwindef::{BOOL, LPARAM, LRESULT, UINT, WPARAM};
+use winapi::shared::minwindef::{BOOL, LPARAM, LRESULT, WPARAM};
 use winapi::shared::windef::{HHOOK, HWND, RECT};
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::winuser::{
     CallNextHookEx, ClipCursor, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
     EnumWindows, GetClientRect, GetKeyboardState, GetMessageW, GetSystemMetrics, IsWindow,
-    LoadCursorW, LoadIconW, PostQuitMessage, RegisterClassExW, SetWindowsHookExW, ShowCursor,
-    ShowWindow, ToUnicode, TranslateMessage, UnhookWindowsHookEx, CS_HREDRAW, CS_VREDRAW,
-    CW_USEDEFAULT, IDC_ARROW, IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG, SM_CXSCREEN, SM_CYSCREEN,
-    SW_SHOW, VK_LMENU, WH_KEYBOARD_LL, WM_DESTROY, WM_DISPLAYCHANGE, WM_KEYDOWN, WM_KEYUP,
-    WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_POPUP,
+    LoadCursorW, LoadIconW, RegisterClassExW, SetWindowsHookExW, ShowCursor, ShowWindow, ToUnicode,
+    TranslateMessage, UnhookWindowsHookEx, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW,
+    IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG, SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, VK_LMENU,
+    WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED,
+    WS_EX_TOOLWINDOW, WS_POPUP,
 };
 
 #[derive(Debug, Clone)]
@@ -50,9 +50,9 @@ impl Window {
         if code >= 0 {
             // println!("Keyboard hook triggered!"); // ดูว่าฟังก์ชันทำงานหรือไม่
             let kb_struct = *(l_param as *const KBDLLHOOKSTRUCT);
-            if w_param as u32 == WM_SYSKEYDOWN {
+            if (w_param as u32) == WM_SYSKEYDOWN {
                 // println!("Key down detected: vkCode = {}", kb_struct.vkCode);
-                if kb_struct.vkCode == VK_LMENU as u32 && Self::is_alt_pressed() {
+                if kb_struct.vkCode == (VK_LMENU as u32) && Self::is_alt_pressed() {
                     // println!("Alt + Tab pressed!");
                     // Block Alt + Tab by not calling CallNextHookEx
                     return 1;
@@ -102,26 +102,26 @@ impl Window {
         }
     }
 
-    unsafe extern "system" fn window_proc(
-        hwnd: HWND,
-        msg: UINT,
-        w_param: WPARAM,
-        l_param: LPARAM,
-    ) -> LRESULT {
-        match msg {
-            WM_DESTROY => {
-                ClipCursor(ptr::null());
-                ShowCursor(BOOL::from(true)); // แสดงเคอร์เซอร์อีกครั้ง
-                PostQuitMessage(0);
-                0
-            }
-            WM_SYSKEYDOWN | WM_DISPLAYCHANGE => {
-                println!("Alt + Tab pressed!");
-                0
-            }
-            _ => DefWindowProcW(hwnd, msg, w_param, l_param),
-        }
-    }
+    // unsafe extern "system" fn window_proc(
+    //     hwnd: HWND,
+    //     msg: UINT,
+    //     w_param: WPARAM,
+    //     l_param: LPARAM,
+    // ) -> LRESULT {
+    //     match msg {
+    //         WM_DESTROY => {
+    //             ClipCursor(ptr::null());
+    //             ShowCursor(BOOL::from(true)); // แสดงเคอร์เซอร์อีกครั้ง
+    //             PostQuitMessage(0);
+    //             0
+    //         }
+    //         WM_SYSKEYDOWN | WM_DISPLAYCHANGE => {
+    //             println!("Alt + Tab pressed!");
+    //             0
+    //         }
+    //         _ => DefWindowProcW(hwnd, msg, w_param, l_param),
+    //     }
+    // }
 
     fn to_string(value: &str) -> Vec<u16> {
         use std::ffi::OsStr;
@@ -220,7 +220,7 @@ impl Window {
             Vec<ScreenMappingMatrix>,
             Vec<ScreenSelector>,
         ) -> bool,
-        mut event: &mut ProtocolEvent,
+        event: &mut ProtocolEvent,
         screen: Screen,
         target_mac: String,
         s_screen_mapping: Vec<ScreenMappingMatrix>,
@@ -306,7 +306,7 @@ impl Window {
                 // Translate the virtual key code into a Unicode character
                 let chars_copied = ToUnicode(
                     vk_code,
-                    (msg.lParam >> 16) as u32 & 0xFF, // Scan code from lParam
+                    ((msg.lParam >> 16) as u32) & 0xff, // Scan code from lParam
                     key_state.as_ptr(),
                     buffer.as_mut_ptr(),
                     buffer.len() as i32,
