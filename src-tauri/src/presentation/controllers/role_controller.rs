@@ -3,7 +3,7 @@ use crate::presentation::models::role_model::Pagination;
 use crate::shared::constants::event_process_constant::EventProcess;
 use axum::extract::Query;
 use axum::http::StatusCode;
-use axum::response::{ IntoResponse, Json };
+use axum::response::{IntoResponse, Json};
 
 pub async fn update_role(query: Query<Pagination>) -> impl IntoResponse {
     match

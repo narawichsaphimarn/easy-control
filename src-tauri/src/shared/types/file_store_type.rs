@@ -13,6 +13,7 @@ pub struct ScreenSelector {
     pub hostname: String,
     pub width: String,
     pub height: String,
+    pub screen_no: i8,
 }
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Setting {

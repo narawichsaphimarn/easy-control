@@ -61,19 +61,19 @@ impl ProtocolUtil {
                 if ip.is_ipv4() {
                     if adapter
                         .friendly_name()
-                        .contains(&InterfaceDesc::Wireless.to_string())
+                        .eq_ignore_ascii_case(&InterfaceDesc::Wireless.to_string())
                         && adapter.if_type() == ipconfig::IfType::Ieee80211
                         && wlan_addrs.is_empty()
                     {
-                        // log::debug!("Wi-Fi adapter {} and IPv4 {}", adapter.friendly_name(), ip);
+                        // println!("Wi-Fi adapter {} and IPv4 {}", adapter.friendly_name(), ip);
                         wlan_addrs = ip.to_string();
                     } else if adapter.if_type() == ipconfig::IfType::EthernetCsmacd
                         && adapter
                             .friendly_name()
-                            .contains(&InterfaceDesc::Ethernet.to_string())
+                        .eq_ignore_ascii_case(&InterfaceDesc::Ethernet.to_string())
                         && lan_addrs.is_empty()
                     {
-                        // log::debug!("LAN adapter {} and IPv4 {}", adapter.friendly_name(), ip);
+                        // println!("LAN adapter {} and IPv4 {}", adapter.friendly_name(), ip);
                         lan_addrs = ip.to_string();
                     }
                 }

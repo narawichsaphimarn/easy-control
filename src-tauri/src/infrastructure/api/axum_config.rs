@@ -3,8 +3,8 @@ use std::sync::Arc;
 use axum;
 use tokio::sync::Mutex;
 
-use crate::infrastructure::database::store_file::file_store::FileStore;
 use crate::presentation::routers::axum_route::AxumRouter;
+use crate::shared::stores::store_json::Stores;
 
 #[derive(Debug, Clone)]
 pub struct AxumInit {
@@ -12,9 +12,9 @@ pub struct AxumInit {
 }
 
 impl AxumInit {
-    pub fn new(filestore: Arc<Mutex<FileStore>>) -> Arc<Self> {
+    pub fn new(store: Arc<Mutex<Stores>>) -> Arc<Self> {
         Arc::new(AxumInit {
-            router: AxumRouter::new(Arc::clone(&filestore)),
+            router: AxumRouter::new(Arc::clone(&store)),
         })
     }
 

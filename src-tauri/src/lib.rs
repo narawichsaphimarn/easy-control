@@ -1,5 +1,8 @@
-use crate::presentation::routers::tauri_command::{get_role, scan_machine};
-use infrastructure::{api::axum_config::AxumInit, database::store_file::file_store::FileStore};
+use crate::presentation::routers::tauri_command::{get_role, get_system_detail, scan_machine};
+use crate::shared::stores::setting_json::Settings;
+use crate::shared::stores::setting_mapping_refer_json::SettingMappingRef;
+use crate::shared::stores::store_json::Stores;
+use infrastructure::api::axum_config::AxumInit;
 use std::{env, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -13,13 +16,14 @@ pub mod shared;
 #[tokio::main]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
-    let store = FileStore::init().await;
-    let store_act = Arc::new(Mutex::new(store));
-    tokio::task::spawn(AxumInit::new(Arc::clone(&store_act)).start());
+    Settings::init().await;
+    SettingMappingRef::init().await;
+    let store = Arc::new(Mutex::new(Stores::init().await));
+    tokio::task::spawn(AxumInit::new(Arc::clone(&store)).start());
     tauri::Builder::default()
-        .manage(Arc::clone(&store_act))
+        .manage(Arc::clone(&store))
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![scan_machine, get_role])
+        .invoke_handler(tauri::generate_handler![scan_machine, get_role, get_system_detail])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

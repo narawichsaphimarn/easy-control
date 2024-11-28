@@ -1,27 +1,25 @@
 use std::sync::Arc;
 
+use crate::presentation::controllers::actuator_controller::actuator;
 use crate::presentation::controllers::protocol_controller::ping;
 use crate::presentation::controllers::screen_controller::screen_mapping_update;
 use crate::presentation::controllers::system_controller::get_system_detail;
-use crate::{
-    infrastructure::database::store_file::file_store::FileStore,
-    presentation::controllers::actuator_controller::actuator,
-};
+use crate::shared::stores::store_json::Stores;
 use axum::{
     http::StatusCode,
-    routing::{get, post, put},
+    routing::{get, put},
     Router,
 };
 use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct AxumRouter {
-    pub filestore: Arc<Mutex<FileStore>>,
+    pub store: Arc<Mutex<Stores>>,
 }
 
 impl AxumRouter {
-    pub fn new(filestore: Arc<Mutex<FileStore>>) -> Self {
-        AxumRouter { filestore }
+    pub fn new(store: Arc<Mutex<Stores>>) -> Self {
+        AxumRouter { store }
     }
 
     async fn fallback() -> (StatusCode, &'static str) {
@@ -33,13 +31,7 @@ impl AxumRouter {
             .route("/api/status", get(actuator))
             .route("/api/v1/system-detail", get(get_system_detail))
             .route("/api/v1/ping", get(ping))
-            .route(
-                "/api/v1/screen-matrix",
-                put({
-                    let store = Arc::clone(&self.filestore);
-                    move |body| screen_mapping_update(body, store)
-                }),
-            )
+            .route("/api/v1/screen-matrix", put(screen_mapping_update))
             .fallback(Self::fallback);
         app
     }

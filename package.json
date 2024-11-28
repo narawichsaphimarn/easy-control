@@ -12,22 +12,26 @@
     "tauri-build": "tauri build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-shell": "^2",
+    "@dnd-kit/core": "^6.2.0",
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
+    "@mui/icons-material": "^6.1.8",
+    "@mui/material": "^6.1.8",
+    "@tauri-apps/api": "2.1.1",
+    "@tauri-apps/plugin-shell": "2.0.1",
     "cursor-control-app": "file:",
-    "konva": "^9.3.15",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-konva": "^18.2.10",
-    "react-router-dom": "^6.27.0",
-    "yarn": "^1.22.22"
+    "react-router-dom": "7.0.1",
+    "yarn": "2.4.3"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
-    "@types/react": "^18.2.15",
+    "@tauri-apps/cli": "2.1.0",
+    "@types/react": "18.3.12",
     "@types/react-dom": "^18.2.7",
-    "@vitejs/plugin-react": "^4.2.1",
-    "typescript": "^5.2.2",
-    "vite": "^5.3.1"
-  }
+    "@vitejs/plugin-react": "4.3.4",
+    "typescript": "5.7.2",
+    "vite": "6.0.1"
+  },
+  "packageManager": "yarn@4.5.3"
 }

@@ -1,18 +1,16 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use tokio::sync::Mutex;
-
 use crate::application::services::protocol_service::ProtocolServiceApplication;
-use crate::infrastructure::database::store_file::file_store::FileStore;
-use crate::infrastructure::thread_async::sync_barrier::SyncBarrier;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
 use crate::shared::constants::screen_constant::ScreenMapperController;
 use crate::shared::rest_client::screen_mapping_matrix_rest_client::update_screen_matrix;
+use crate::shared::stores::setting_mapping_refer_json::SettingMappingRef;
+use crate::shared::stores::store_json::Stores;
 use crate::shared::types::file_store_type::{
     ScreenMappingMatrix, ScreenMappingRefer, ScreenSelector,
 };
 use crate::shared::utils::protocol_util::ProtocolUtil;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct ScreenServiceApplication;
@@ -20,19 +18,19 @@ pub struct ScreenServiceApplication;
 impl ScreenServiceApplication {
     pub async fn screen_mapping_update(
         request: Vec<ScreenMappingRequest>,
-        filestore: Arc<Mutex<FileStore>>,
     ) -> Result<Vec<ScreenMappingRequest>, String> {
         let screen_selects = Self::screen_select(request.clone())
             .await
             .map_err(|e| e.to_string())?;
-        let mut mappings = filestore.lock().await;
-        let screen_matrixs =
+        let mappings = SettingMappingRef::read_file().await;
+        let screen_matrix =
             Self::screen_mapping_metric(request.clone(), mappings.screen_mapping_refer.clone())
                 .await
                 .map_err(|e| e.to_string())?;
-        mappings.screen_selector = screen_selects;
-        mappings.screen_mapping_matrix = screen_matrixs;
-        let result = FileStore::write_file(mappings.clone()).await;
+        let mut store = Stores::read_file().await;
+        store.screen_selector = screen_selects;
+        store.screen_mapping_matrix = screen_matrix;
+        let result = Stores::write_file(store.clone()).await;
         match result {
             Ok(_) => {}
             Err(e) => panic!("{}", e),
@@ -42,19 +40,20 @@ impl ScreenServiceApplication {
 
     pub async fn screen_mapping_process(
         request: Vec<ScreenMappingRequest>,
-        filestore: Arc<Mutex<FileStore>>,
+        store: Arc<Mutex<Stores>>,
     ) -> Result<Vec<ScreenMappingRequest>, String> {
         let screen_selects = Self::screen_select(request.clone())
             .await
             .map_err(|e| e.to_string())?;
-        let mut mappings = filestore.lock().await;
-        let screen_matrixs =
+        let mappings = SettingMappingRef::read_file().await;
+        let screen_matrix =
             Self::screen_mapping_metric(request.clone(), mappings.screen_mapping_refer.clone())
                 .await
                 .map_err(|e| e.to_string())?;
-        mappings.screen_selector = screen_selects;
-        mappings.screen_mapping_matrix = screen_matrixs;
-        let result = FileStore::write_file(mappings.clone()).await;
+        let mut store = store.lock().await;
+        store.screen_selector = screen_selects;
+        store.screen_mapping_matrix = screen_matrix;
+        let result = Stores::write_file(store.clone()).await;
         match result {
             Ok(_) => {
                 // let _ = Self::update_matrix_inside_network(request).await;
@@ -98,6 +97,7 @@ impl ScreenServiceApplication {
                     hostname: item.machine.host_name.clone(),
                     width: item.machine.screen.width.to_string(),
                     height: item.machine.screen.height.to_string(),
+                    screen_no: item.screen_no,
                 };
             })
             .collect();

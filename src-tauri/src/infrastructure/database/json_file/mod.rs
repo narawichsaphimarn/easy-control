@@ -1,6 +1,4 @@
 pub mod file_store {
-    use std::path::Display;
-
     use crate::shared::types::file_store_type::{
         ScreenMappingMatrix, ScreenMappingRefer, ScreenSelector, Setting,
     };

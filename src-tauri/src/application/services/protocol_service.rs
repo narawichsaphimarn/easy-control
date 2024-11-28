@@ -8,6 +8,16 @@ use tokio::task::JoinHandle;
 pub struct ProtocolServiceApplication;
 
 impl ProtocolServiceApplication {
+    pub async fn get_machine_detail() -> Result<System, String> {
+        let ips: (String, String) = ProtocolUtil::get_addrs();
+        println!("{:?}", ips);
+        let (select_ip, _) = Self::select_ip(ips);
+        match SystemServiceApplication::get_system_detail(select_ip) {
+            Ok(r) => Ok(r),
+            Err(s) => Err(s),
+        }
+    }
+
     pub async fn check_machine() -> Result<Vec<System>, String> {
         let ips: (String, String) = ProtocolUtil::get_addrs();
         // log::debug!("ips  wlan : {}, lan: {}", ips.0, ips.1);
