@@ -196,6 +196,7 @@ export const ScreenDragAndDrop = ({
         setSystemBak={setSystemBak}
         setSystem={setSystem}
         system={system}
+        screens={screens ? screens : []}
       />
       <div
         style={{

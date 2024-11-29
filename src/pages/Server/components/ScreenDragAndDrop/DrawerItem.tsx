@@ -21,6 +21,7 @@ interface InterfaceProps {
   setSystemBak: React.Dispatch<React.SetStateAction<System[]>>;
   setSystem: React.Dispatch<React.SetStateAction<System[]>>;
   system: System[];
+  screens: ScreenMatrixRequest[];
 }
 
 export interface System {
@@ -36,12 +37,16 @@ export const DrawerItem = ({
   addScreenMatrix,
   setSystemBak,
   setSystem,
-  system
+  system,
+  screens,
 }: InterfaceProps) => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const scanNetwork = useCallback(async () => {
-    const resultSystem = await invoke<System[]>("scan_machine");
+    let resultSystem = await invoke<System[]>("scan_machine");
+    resultSystem = resultSystem.filter(
+      (item) => screens.findIndex((s) => s.machine.mac === item.mac) === -1
+    );
     setSystem(resultSystem);
   }, [system]);
 
@@ -117,51 +122,68 @@ export const DrawerItem = ({
             </>
           ) : (
             <Box>
-              {system.map((data) => (
-                <Card
-                  sx={{ minWidth: 275, cursor: "pointer" }}
-                  onClick={() => {
-                    convertScreenMatrixAndAdd(data);
+              {system.length === 0 ? (
+                <Typography
+                  variant="h6"
+                  component="div"
+                  sx={{
+                    color: "text.secondary",
                   }}
                 >
-                  <CardContent>
-                    <Typography variant="h5" component="div">
-                      {data.host_name}
-                    </Typography>
-                    <Typography
-                      gutterBottom
-                      sx={{
-                        color: "text.secondary",
-                        fontSize: 14,
-                      }}
-                    >
-                      {data.ip}
-                    </Typography>
+                  Machine not found
+                </Typography>
+              ) : (
+                system.map((data, index) => (
+                  <Card
+                    key={index}
+                    sx={{ minWidth: 275, cursor: "pointer" }}
+                    onClick={() => {
+                      convertScreenMatrixAndAdd(data);
+                    }}
+                  >
+                    <CardContent>
+                      <Typography variant="h5" component="div">
+                        {data.host_name}
+                      </Typography>
+                      <Typography
+                        gutterBottom
+                        sx={{
+                          color: "text.secondary",
+                          fontSize: 14,
+                        }}
+                      >
+                        {data.ip}
+                      </Typography>
 
-                    <Typography
-                      gutterBottom
-                      sx={{
-                        color: "text.secondary",
-                        fontSize: 10,
-                        float: "left",
-                      }}
-                    >
-                      {data.mac}
-                    </Typography>
-                    <Divider orientation="vertical" variant="middle" flexItem />
-                    <Typography
-                      gutterBottom
-                      sx={{
-                        color: "text.secondary",
-                        fontSize: 10,
-                        float: "right",
-                      }}
-                    >
-                      {`${data.screen.width} x ${data.screen.height}`}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              ))}
+                      <Typography
+                        gutterBottom
+                        sx={{
+                          color: "text.secondary",
+                          fontSize: 10,
+                          float: "left",
+                        }}
+                      >
+                        {data.mac}
+                      </Typography>
+                      <Divider
+                        orientation="vertical"
+                        variant="middle"
+                        flexItem
+                      />
+                      <Typography
+                        gutterBottom
+                        sx={{
+                          color: "text.secondary",
+                          fontSize: 10,
+                          float: "right",
+                        }}
+                      >
+                        {`${data.screen.width} x ${data.screen.height}`}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </Box>
           )}
         </List>
