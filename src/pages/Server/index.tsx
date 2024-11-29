@@ -116,6 +116,7 @@ export const Server = () => {
           alignItems: "center",
           justifyContent: "center",
           width: "60%",
+          position: "relative",
         }}
       >
         <ScreenDragAndDrop

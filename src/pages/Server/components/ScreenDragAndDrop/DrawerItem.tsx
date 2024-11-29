@@ -18,6 +18,9 @@ interface InterfaceProps {
   isOpen: number | null;
   setIsOpen: React.Dispatch<React.SetStateAction<number | null>>;
   addScreenMatrix: (data: ScreenMatrixRequest) => void;
+  setSystemBak: React.Dispatch<React.SetStateAction<System[]>>;
+  setSystem: React.Dispatch<React.SetStateAction<System[]>>;
+  system: System[];
 }
 
 export interface System {
@@ -31,10 +34,11 @@ export const DrawerItem = ({
   isOpen,
   setIsOpen,
   addScreenMatrix,
+  setSystemBak,
+  setSystem,
+  system
 }: InterfaceProps) => {
   const [loading, setLoading] = useState<boolean>(false);
-  const [system, setSystem] = useState<System[]>([]);
-  const [_, setSystemBak] = useState<System[]>([]);
 
   const scanNetwork = useCallback(async () => {
     const resultSystem = await invoke<System[]>("scan_machine");
