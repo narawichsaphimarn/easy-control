@@ -54,7 +54,7 @@ pub async fn get_system_detail() -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn switch_row() {
+pub async fn switch_role() {
     let mut settings = Settings::default();
     for mut setting in Settings::read_file().await.setting {
         if setting.parameter_key.eq_ignore_ascii_case(&"NETWORK_ROLE")

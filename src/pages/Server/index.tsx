@@ -1,22 +1,25 @@
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, ButtonGroup, Typography } from "@mui/material";
 import { ScreenDragAndDrop } from "./components/ScreenDragAndDrop";
 import { invoke } from "@tauri-apps/api/core";
 import SendIcon from "@mui/icons-material/Send";
 import SwitchRightIcon from "@mui/icons-material/SwitchRight";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import LoadingButton from "@mui/lab/LoadingButton";
+import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 
-interface ScreenMatrixRequest {
+export interface ScreenMatrixRequest {
   screen_no: number;
   machine: {
     host_name: string;
     ip: string;
     mac: string;
-    screen: {
-      width: number;
-      height: number;
-    };
+    screen: ScreenScale;
   };
+}
+
+export interface ScreenScale {
+  width: number;
+  height: number;
 }
 
 export interface ScreenSelector {
@@ -30,25 +33,59 @@ export interface ScreenSelector {
 
 export const Server = () => {
   const [loading, setLoading] = useState<boolean>(false);
-  const [screenSelector, setScreenSelector] = useState<ScreenSelector[]>([]);
+  const [_, setScreenSelector] = useState<ScreenSelector[]>([]);
   const [screenMatrix, setScreenMatrix] = useState<ScreenMatrixRequest[]>([]);
-  useMemo(
-    async () => await invoke<ScreenSelector[]>("get_screen_selector"),
-    []
-  ).then((result) => setScreenSelector(result));
+  const [screenMatrixCurrent, setScreenMatrixCurrent] = useState<string>("");
+
+  const getScreenSelector = async () => {
+    await invoke<ScreenSelector[]>("get_screen_selector").then((result) => {
+      setScreenSelector(result);
+      const mapScreen = mappingMatrix(result);
+      setScreenMatrixCurrent(JSON.stringify(mapScreen));
+      setScreenMatrix(mapScreen);
+    });
+  };
+
+  useEffect(() => {
+    getScreenSelector().catch((error) => console.error(error));
+  }, []);
+
+  const mappingMatrix = (data: ScreenSelector[]) => {
+    return data
+      .map((item) => {
+        const map: ScreenMatrixRequest = {
+          screen_no: item.screen_no,
+          machine: {
+            host_name: item.hostname,
+            ip: item.ip,
+            mac: item.mac,
+            screen: {
+              width: parseInt(item.width),
+              height: parseInt(item.height),
+            },
+          },
+        };
+        return map;
+      })
+      .sort();
+  };
 
   const switchRole = async () => {
-    await invoke("switch_row");
+    await invoke("switch_role");
   };
 
   const updateScreenMatrix = async () => {
     setLoading(true);
     await invoke("set_machine", { machine_select: screenMatrix })
-      .then((result) => {
+      .then(() => {
         setLoading(false);
-        console.log("response from mapping matrix {}", result);
+        getScreenSelector().catch((error) => console.error(error));
       })
       .catch((error) => console.error(error));
+  };
+
+  const resetMatrix = async () => {
+    getScreenSelector().catch((error) => console.error(error));
   };
 
   return (
@@ -81,19 +118,30 @@ export const Server = () => {
           width: "60%",
         }}
       >
-        <ScreenDragAndDrop screenSelector={screenSelector} />
-        <div style={{ width: "100%", marginTop: "5px" }}>
-          <LoadingButton
-            loading={loading}
-            color="success"
-            loadingPosition="start"
-            startIcon={<SendIcon />}
-            variant="contained"
-            onClick={() => updateScreenMatrix()}
-            style={{ float: "right" }}
-          >
-            Update
-          </LoadingButton>
+        <ScreenDragAndDrop
+          screens={screenMatrix}
+          setScreenMatrix={setScreenMatrix}
+        />
+        <div style={{ marginTop: "10px" }}>
+          <ButtonGroup variant="outlined" aria-label="Loading button group">
+            <Button
+              startIcon={<RotateLeftIcon />}
+              disabled={JSON.stringify(screenMatrix) === screenMatrixCurrent}
+              onClick={resetMatrix}
+            >
+              Reset
+            </Button>
+            <LoadingButton
+              loading={loading}
+              color="success"
+              loadingPosition="start"
+              startIcon={<SendIcon />}
+              onClick={() => updateScreenMatrix()}
+              disabled={JSON.stringify(screenMatrix) === screenMatrixCurrent}
+            >
+              Update
+            </LoadingButton>
+          </ButtonGroup>
         </div>
       </Box>
     </div>

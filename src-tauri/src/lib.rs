@@ -1,5 +1,5 @@
 use crate::presentation::routers::tauri_command::{
-    get_role, get_system_detail, scan_machine, switch_row,
+    get_role, get_system_detail, scan_machine, switch_role,
 };
 use crate::shared::stores::setting_json::Settings;
 use crate::shared::stores::setting_mapping_refer_json::SettingMappingRef;
@@ -30,7 +30,7 @@ pub async fn run() {
             scan_machine,
             get_role,
             get_system_detail,
-            switch_row,
+            switch_role,
             set_machine,
             get_screen_selector
         ])

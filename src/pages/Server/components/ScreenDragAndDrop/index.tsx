@@ -1,35 +1,36 @@
 import React, { useEffect, useState } from "react";
-import {
-  DndContext,
-  DragEndEvent,
-  useDraggable,
-  useDroppable,
-} from "@dnd-kit/core";
+import { DndContext, DragEndEvent, useDroppable } from "@dnd-kit/core";
 import { closestCenter } from "@dnd-kit/core";
 import { DrawerItem } from "./DrawerItem";
-import { ScreenSelector } from "../..";
-import { Card, CardContent, Typography } from "@mui/material";
+import { ScreenMatrixRequest } from "../..";
+import { DraggableItem } from "./DraggableItem";
+import { IconButton } from "@mui/material";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 
 // Define the type for the grid state
-type GridState = Record<string, ScreenSelector | null>;
-
-interface DraggableItemProps {
-  id: number;
-  item: ScreenSelector | null;
-}
+type GridState = Record<string, ScreenMatrixRequest | null>;
 
 interface DroppableCellProps {
   id: number;
-  item: ScreenSelector | null;
+  item: ScreenMatrixRequest | null;
   onDrop?: (id: string) => void;
 }
 
 interface InterfaceProps {
-  screenSelector: ScreenSelector[] | undefined;
+  screens: ScreenMatrixRequest[] | undefined;
+  setScreenMatrix: React.Dispatch<React.SetStateAction<ScreenMatrixRequest[]>>;
 }
 
-export const ScreenDragAndDrop = ({ screenSelector }: InterfaceProps) => {
+export const ScreenDragAndDrop = ({
+  screens,
+  setScreenMatrix,
+}: InterfaceProps) => {
   const [grid, setGrid] = useState<GridState>({});
+  const [open, setOpen] = useState<number | null>(null);
+
+  const addScreenMatrix = (data: ScreenMatrixRequest) => {
+    setScreenMatrix((prevScreen) => [...prevScreen, data]);
+  };
 
   useEffect(() => {
     let result: GridState = {};
@@ -37,42 +38,11 @@ export const ScreenDragAndDrop = ({ screenSelector }: InterfaceProps) => {
       result = {
         ...result,
         [index]:
-          screenSelector?.find((value) => value.screen_no - 1 === index) ??
-          null,
+          screens?.find((value) => value.screen_no - 1 === index) ?? null,
       };
     });
     setGrid(result);
-  }, [screenSelector]);
-
-  const DraggableItem: React.FC<DraggableItemProps> = ({ id, item }) => {
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({
-      id,
-    });
-
-    const style: React.CSSProperties = {
-      transform: `translate3d(${transform?.x ?? 0}px, ${
-        transform?.y ?? 0
-      }px, 0)`,
-      // padding: "25px 50px 25px 50px",
-      background: "black",
-      borderRadius: "4px",
-      cursor: "grab",
-      textAlign: "center",
-      display: "flex",
-      maxWidth: "125px",
-      maxHeight: "120px",
-      width: "120px",
-      height: "100px",
-      alignItems: "center",
-      justifyContent: "center",
-    };
-
-    return (
-      <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-        {item?.hostname}
-      </div>
-    );
-  };
+  }, [screens]);
 
   const DroppableCell: React.FC<DroppableCellProps> = ({ id, item }) => {
     const { isOver, setNodeRef } = useDroppable({
@@ -85,14 +55,27 @@ export const ScreenDragAndDrop = ({ screenSelector }: InterfaceProps) => {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: isOver ? "lightgreen" : "lightgray",
-      border: "1px solid black",
+      background: "lightgray",
+      border: isOver ? "3px solid red" : "1px solid black",
+      borderRadius: "4px",
       position: "relative",
     };
 
     return (
       <div ref={setNodeRef} style={style}>
-        {item && <DraggableItem id={id} item={item} />}
+        {item ? (
+          <DraggableItem id={id} item={item} />
+        ) : (
+          <IconButton
+            color="primary"
+            aria-label="add"
+            onClick={() => {
+              setOpen(id + 1);
+            }}
+          >
+            <AddCircleIcon fontSize="large" />
+          </IconButton>
+        )}
       </div>
     );
   };
@@ -109,15 +92,26 @@ export const ScreenDragAndDrop = ({ screenSelector }: InterfaceProps) => {
           const no = prevGrid[key]?.screen_no;
           if (no) return no - 1 === active.id;
         });
-        let dataBak: ScreenSelector | null = null;
+        let dataBak: ScreenMatrixRequest | null = null;
         if (sourceCell) {
           dataBak = updatedGrid[sourceCell];
-          if (dataBak) dataBak.screen_no = parseInt(over.id.toString()) + 1;
+          if (dataBak) {
+            dataBak.screen_no = parseInt(over.id.toString()) + 1;
+          }
           updatedGrid[sourceCell] = null;
+          // Place the dragged item in the target cell
+          updatedGrid[over.id] = dataBak;
+          setScreenMatrix((prevMatrix) => {
+            if (dataBak) {
+              let updateMatrix = [...prevMatrix].filter(
+                (item) => item.machine.mac !== dataBak?.machine.mac
+              );
+              return [...updateMatrix, dataBak].sort();
+            } else {
+              return [...prevMatrix];
+            }
+          });
         }
-        // Place the dragged item in the target cell
-        // @ts-ignore
-        updatedGrid[over.id] = dataBak;
         return updatedGrid;
       });
     }
@@ -125,7 +119,11 @@ export const ScreenDragAndDrop = ({ screenSelector }: InterfaceProps) => {
 
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <DrawerItem />
+      <DrawerItem
+        isOpen={open}
+        setIsOpen={setOpen}
+        addScreenMatrix={addScreenMatrix}
+      />
       <div
         style={{
           display: "grid",
