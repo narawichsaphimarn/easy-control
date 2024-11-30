@@ -1,20 +1,20 @@
 use crate::shared::constants::protocol_constant::InterfaceDesc;
+#[cfg(target_os = "windows")]
 use crate::shared::utils::convert::byte_convert::convert_option_byte_to_string_for_mac;
 #[cfg(target_os = "windows")]
 use ipconfig;
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use ping;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use pnet::datalink;
-#[cfg(target_os = "macos")]
-use std::error::Error;
 #[cfg(target_os = "linux")]
 use std::fs;
 #[cfg(target_os = "linux")]
 use std::path::Path;
+use std::process::Command;
 use std::sync::Arc;
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use std::time::Duration;
-#[cfg(target_os = "macos")]
-use tokio::process::Command;
 use tokio::sync::Semaphore;
 use tokio::task;
 
@@ -86,36 +86,36 @@ impl ProtocolUtil {
 
 #[cfg(target_os = "macos")]
 impl ProtocolUtil {
-    pub async fn ping_ip(ip: &str) -> bool {
+    pub fn ping_ip(ip: &str) -> bool {
         let mut output = Command::new("ping")
             .arg("-c 1")
             .arg(ip)
             .spawn()
             .expect("Failed to execute ping");
-        match output.wait().await {
+        match output.wait() {
             Ok(r) => r.success(),
-            Err(e) => {
-                log::error!("Failed to ping: {}", e);
+            Err(_) => {
+                // log::error!("Failed to ping: {}", e);
                 false
             }
         }
     }
 
     pub fn get_addrs() -> (String, String) {
-        log::debug!("Start mapping address");
+        // log::debug!("Start mapping address");
         let mut wlan_addrs: String = String::new();
         let mut lan_addrs: String = String::new();
         let interfaces = datalink::interfaces();
         for i_face in interfaces {
             for ip in i_face.clone().ips {
                 if ip.is_ipv4() {
-                    let (wl, et) = map_wifi_or_lan();
+                    let (wl, et) = Self::map_wifi_or_lan();
                     if wl.eq_ignore_ascii_case(&i_face.clone().name) && wlan_addrs.is_empty() {
-                        log::debug!("Wi-Fi adapter {} and IPv4 {}", i_face.clone().name, ip);
+                        // log::debug!("Wi-Fi adapter {} and IPv4 {}", i_face.clone().name, ip);
                         wlan_addrs = ip.ip().to_string();
                     } else if et.eq_ignore_ascii_case(&i_face.clone().name) && lan_addrs.is_empty()
                     {
-                        log::debug!("LAN adapter {} and IPv4 {}", i_face.clone().name, ip);
+                        // log::debug!("LAN adapter {} and IPv4 {}", i_face.clone().name, ip);
                         lan_addrs = ip.ip().to_string();
                     }
                 }
@@ -141,12 +141,12 @@ impl ProtocolUtil {
                 let device = line.split(':').nth(1).unwrap().trim();
                 if hardware_port.eq_ignore_ascii_case(InterfaceDesc::Wireless.to_string().as_str())
                 {
-                    log::debug!("{} is a WLAN (Wi-Fi) interface", device);
+                    // log::debug!("{} is a WLAN (Wi-Fi) interface", device);
                     wlan_iface = device.to_string();
                 } else if hardware_port
                     .eq_ignore_ascii_case(InterfaceDesc::Ethernet.to_string().as_str())
                 {
-                    log::debug!("{} is a LAN (Ethernet) interface", device);
+                    // log::debug!("{} is a LAN (Ethernet) interface", device);
                     lan_iface = device.to_string();
                 }
             }
@@ -270,7 +270,7 @@ impl ProtocolUtil {
             let _semaphore = semaphore.clone();
             let jh = task::spawn(async move {
                 let permit = _semaphore.acquire_owned().await.unwrap();
-                let status = Self::ping_ip(&ip).await;
+                let status = Self::ping_ip(&ip);
                 drop(permit);
                 if status {
                     Some(ip)

@@ -39,7 +39,6 @@ thread_local! {
     static HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
 }
 
-#[cfg(target_os = "windows")]
 impl Window {
     unsafe extern "system" fn keyboard_hook(
         code: i32,

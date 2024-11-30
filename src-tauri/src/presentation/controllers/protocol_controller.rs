@@ -9,6 +9,6 @@ use axum::{
 pub async fn ping(pagination: Query<Pagination>) -> impl IntoResponse {
     (
         StatusCode::OK,
-        Json(ProtocolUtil::ping_ip(&*pagination.0.ip_addr).await).into_response(),
+        Json(ProtocolUtil::ping_ip(&*pagination.0.ip_addr)).into_response(),
     )
 }

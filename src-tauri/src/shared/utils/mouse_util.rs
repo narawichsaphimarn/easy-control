@@ -1,6 +1,8 @@
 use crate::shared::constants::screen_constant::PositionAtEdge;
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::screen_type::Screen;
+#[cfg(target_os = "macos")]
+use rdev::{simulate, EventType};
 #[cfg(target_os = "windows")]
 use winapi::{
     shared::windef::{POINT, RECT},
@@ -64,6 +66,15 @@ impl MouseUtil {
 impl MouseUtil {
     pub fn get_cursor_point() -> Mouse {
         Mouse { x: 0.0, y: 0.0 }
+    }
+
+    pub fn move_cursor(x: i32, y: i32) {
+        if let Err(e) = simulate(&EventType::MouseMove {
+            x: x as f64,
+            y: y as f64,
+        }) {
+            panic!("Failed to move the mouse: {:?}", e);
+        }
     }
 }
 
