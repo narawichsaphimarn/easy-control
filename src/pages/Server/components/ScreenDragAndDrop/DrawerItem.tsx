@@ -9,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { LoadingButton } from "@mui/lab";
-import { useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import WifiFindIcon from "@mui/icons-material/WifiFind";
 import { invoke } from "@tauri-apps/api/core";
 import { ScreenMatrixRequest, ScreenScale } from "../..";
@@ -113,7 +113,7 @@ export const DrawerItem = ({
         <List>
           {loading ? (
             <>
-              <Box sx={{ pt: 0.5 }} style={{ backgroundColor: "black" }}>
+              <Box sx={{ pt: 0.5 }}>
                 <Skeleton variant="rectangular" width={210} height={118} />
                 <Skeleton />
                 <Skeleton width="60%" />
@@ -198,7 +198,7 @@ export const DrawerItem = ({
   return (
     <Box>
       <Drawer
-        open={isOpen === null ? false : true}
+        open={isOpen !== null}
         onClose={() => setIsOpen(null)}
         anchor={"right"}
       >
