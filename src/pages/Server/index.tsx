@@ -1,9 +1,12 @@
 import { Box, Button, ButtonGroup, Typography } from "@mui/material";
-import { ScreenDragAndDrop } from "./components/ScreenDragAndDrop";
+import {
+  DragChildRef,
+  ScreenDragAndDrop,
+} from "./components/ScreenDragAndDrop";
 import { invoke } from "@tauri-apps/api/core";
 import SendIcon from "@mui/icons-material/Send";
 import SwitchRightIcon from "@mui/icons-material/SwitchRight";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LoadingButton from "@mui/lab/LoadingButton";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 
@@ -36,6 +39,7 @@ export const Server = () => {
   const [_, setScreenSelector] = useState<ScreenSelector[]>([]);
   const [screenMatrix, setScreenMatrix] = useState<ScreenMatrixRequest[]>([]);
   const [screenMatrixCurrent, setScreenMatrixCurrent] = useState<string>("");
+  const dragChildRef = useRef<DragChildRef>(null);
 
   const getScreenSelector = async () => {
     await invoke<ScreenSelector[]>("get_screen_selector").then((result) => {
@@ -85,7 +89,13 @@ export const Server = () => {
   };
 
   const resetMatrix = async () => {
-    getScreenSelector().catch((error) => console.error(error));
+    getScreenSelector()
+      .then(() => {
+        if (dragChildRef.current) {
+          dragChildRef.current.reset();
+        }
+      })
+      .catch((error) => console.error(error));
   };
 
   return (
@@ -120,6 +130,7 @@ export const Server = () => {
         }}
       >
         <ScreenDragAndDrop
+          ref={dragChildRef}
           screens={screenMatrix}
           setScreenMatrix={setScreenMatrix}
         />

@@ -11,12 +11,12 @@ use pnet::datalink;
 use std::fs;
 #[cfg(target_os = "linux")]
 use std::path::Path;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use std::process::Command;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use std::sync::Arc;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 use std::time::Duration;
-use tokio::sync::Semaphore;
-use tokio::task;
 
 pub struct ProtocolUtil;
 
@@ -39,7 +39,7 @@ impl ProtocolUtil {
         mac
     }
 
-    pub async fn ping_ip(ip: &str) -> bool {
+    pub fn ping_ip(ip: &str) -> bool {
         ping::ping(
             ip.parse().unwrap(),
             Some(Duration::from_secs(1)),
@@ -89,7 +89,6 @@ impl ProtocolUtil {
     pub fn ping_ip(ip: &str) -> bool {
         let mut output = Command::new("ping")
             .arg("-c 1")
-            .arg("-t 1")
             .arg(ip)
             .spawn()
             .expect("Failed to execute ping");
@@ -262,7 +261,7 @@ impl ProtocolUtil {
 
 impl ProtocolUtil {
     pub async fn scan_network(base_ip: &str) -> Vec<String> {
-        let semaphore = Arc::new(Semaphore::new(100));
+        // let semaphore = Arc::new(Semaphore::new(100));
         let base_ip = base_ip.to_string();
         let mut jhs = Vec::with_capacity(255);
         for i in 2..=255 {
