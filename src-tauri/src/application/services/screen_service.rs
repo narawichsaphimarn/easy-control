@@ -56,7 +56,7 @@ impl ScreenServiceApplication {
         let result = Stores::write_file(store.clone()).await;
         match result {
             Ok(_) => {
-                // let _ = Self::update_matrix_inside_network(request).await;
+                let _ = Self::update_matrix_inside_network(request.clone()).await;
             }
             Err(e) => panic!("{}", e),
         }
