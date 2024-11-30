@@ -85,7 +85,11 @@ export const DrawerItem = ({
 
   const DrawerList = (
     <Box
-      sx={{ width: 300, display: "flex", flexDirection: "column" }}
+      sx={{
+        width: 300,
+        display: "flex",
+        flexDirection: "column",
+      }}
       role="presentation"
     >
       <Box>
@@ -109,7 +113,7 @@ export const DrawerItem = ({
         <List>
           {loading ? (
             <>
-              <Box sx={{ pt: 0.5 }}>
+              <Box sx={{ pt: 0.5 }} style={{ backgroundColor: "black" }}>
                 <Skeleton variant="rectangular" width={210} height={118} />
                 <Skeleton />
                 <Skeleton width="60%" />
@@ -192,7 +196,7 @@ export const DrawerItem = ({
   );
 
   return (
-    <Box style={{}}>
+    <Box>
       <Drawer
         open={isOpen === null ? false : true}
         onClose={() => setIsOpen(null)}

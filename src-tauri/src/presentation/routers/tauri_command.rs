@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::application::services::protocol_service::ProtocolServiceApplication;
 use crate::application::services::screen_service::ScreenServiceApplication;
+use crate::application::services::server_step_service::ServerStepServiceApplication;
 use crate::presentation::models::screen_model::ScreenMappingRequest;
 use crate::shared::stores::setting_json::Settings;
 use crate::shared::stores::store_json::Stores;
@@ -42,7 +43,7 @@ pub async fn get_screen_selector(
     state: State<'_, Arc<Mutex<Stores>>>,
 ) -> Result<serde_json::Value, String> {
     let store = state.lock().await;
-    Ok(json!(store.screen_selector))
+    Ok(json!(store.clone()))
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -79,4 +80,9 @@ pub async fn switch_role() {
 }
 
 #[tauri::command]
-pub fn start_server() {}
+pub async fn start_server(state: State<'_, Arc<Mutex<Stores>>>) -> Result<(), String> {
+    let server = ServerStepServiceApplication::new(Arc::clone(&state));
+    let jh = tokio::task::spawn(server.run());
+    let _ = tokio::join!(jh);
+    Ok(())
+}

@@ -342,12 +342,6 @@ impl Window {
     }
 
     pub fn destroy() {
-        // unsafe {
-        //     EnumWindows
-        //     if DestroyAllWindows(*hwnd) == 0 {
-        //         println!("Failed to destroy window: {}", GetLastError());
-        //     }
-        // }
         Self::destroy_all_windows();
     }
 }

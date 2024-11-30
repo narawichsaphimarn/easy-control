@@ -1,18 +1,21 @@
 use crate::application::services::protocol_service::ProtocolServiceApplication;
 use crate::shared::constants::step_control_constant::StepControl;
 use crate::shared::lib::lib_event::Window;
+use crate::shared::stores::store_json::Stores;
+use crate::shared::types::file_store_type::{ScreenMappingMatrix, ScreenSelector};
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
 use crate::shared::utils::mouse_util::MouseUtil;
 use crate::shared::utils::protocol_util::ProtocolUtil;
 use crate::shared::utils::screen_util::ScreenUtil;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use tokio::sync::watch;
 use tokio::sync::watch::{Receiver, Sender};
+use tokio::sync::{watch, Mutex};
+#[cfg(target_os = "windows")]
 use winapi::shared::windef::HWND__;
 
 #[derive(Debug, Clone)]
@@ -20,20 +23,18 @@ pub struct ServerStepServiceApplication {
     pub step_tx: Sender<StepControl>,
     pub step_rx: Receiver<StepControl>,
     pub cancel_flag: Arc<AtomicBool>,
+    pub store: Arc<Mutex<Stores>>,
 }
 
 impl ServerStepServiceApplication {
-    pub fn new() -> Arc<Self> {
+    pub fn new(store: Arc<Mutex<Stores>>) -> Arc<Self> {
         let (step_tx, step_rx) = watch::channel(StepControl::ServerLocal);
         Arc::new(ServerStepServiceApplication {
             step_tx,
             step_rx,
             cancel_flag: Arc::new(AtomicBool::new(false)),
+            store,
         })
-    }
-
-    pub fn stop_tasks(&self) {
-        self.cancel_flag.store(true, Ordering::SeqCst);
     }
 
     pub async fn run(self: Arc<Self>) {
@@ -68,7 +69,14 @@ impl ServerStepServiceApplication {
         event.source_height = screen.height;
         event.source_mac = my_mc.clone().to_string();
         event.source_ip = ip.clone().to_string();
-        Self::handle_loop_switch_screen(&mut event, screen, my_mc);
+        let store = self.store.lock().await;
+        Self::handle_loop_switch_screen(
+            &mut event,
+            screen,
+            my_mc,
+            store.screen_selector.clone(),
+            store.screen_mapping_matrix.clone(),
+        );
         // log::debug!("End LOCAL | Event: {:?}", event);
         let _ = self.step_tx.send(StepControl::ServerRemote);
     }
@@ -80,8 +88,7 @@ impl ServerStepServiceApplication {
             height: event.source_height,
         };
         let mac = event.target_mac.clone();
-        let s_screen_mapping = Self::get_screen_metrics();
-        let s_screen_selector = Self::get_screen_selector();
+        let store = self.store.lock().await;
         #[cfg(target_os = "windows")]
         unsafe {
             let raw_hwnd: *mut HWND__ = Window::create_window(class.clone());
@@ -94,8 +101,8 @@ impl ServerStepServiceApplication {
                 &mut event,
                 screen,
                 mac,
-                s_screen_mapping,
-                s_screen_selector,
+                store.screen_mapping_matrix.clone(),
+                store.screen_selector.clone(),
             );
         }
         // log::debug!("End REMOTE | Event: {:?}", event);
@@ -109,8 +116,7 @@ impl ServerStepServiceApplication {
             height: event.source_height,
         };
         let mac = event.target_mac.clone();
-        let s_screen_mapping = Self::get_screen_metrics();
-        let s_screen_selector = Self::get_screen_selector();
+        let store = self.store.lock().await;
         #[cfg(target_os = "windows")]
         unsafe {
             Window::event(
@@ -118,16 +124,16 @@ impl ServerStepServiceApplication {
                 &mut event,
                 screen,
                 mac,
-                s_screen_mapping,
-                s_screen_selector,
+                store.screen_mapping_matrix.clone(),
+                store.screen_selector.clone(),
             );
         }
         // log::debug!("End  REMOTE AGAIN | Event: {:?}", event);
         self.switch_screen(&mut event);
     }
 
-    fn switch_screen(&self, mut event: &mut ProtocolEvent) {
-        if (event.source_mac.eq_ignore_ascii_case(&event.target_mac)) {
+    fn switch_screen(&self, event: &mut ProtocolEvent) {
+        if event.source_mac.eq_ignore_ascii_case(&event.target_mac) {
             let _ = self.step_tx.send(StepControl::ServerLocal);
         } else {
             let _ = self.step_tx.send(StepControl::ServerRemoteAgain);
@@ -138,9 +144,9 @@ impl ServerStepServiceApplication {
         mut event: &mut ProtocolEvent,
         screen: Screen,
         target_mac: String,
+        s_screen_selector: Vec<ScreenSelector>,
+        s_screen_mapping: Vec<ScreenMappingMatrix>,
     ) {
-        let s_screen_mapping = Self::get_screen_metrics();
-        let s_screen_selector = Self::get_screen_selector();
         loop {
             let point = MouseUtil::get_cursor_point();
             if let Ok(result) = Self::check_switch_screen(
@@ -184,7 +190,7 @@ impl ServerStepServiceApplication {
     fn check_switch_screen(
         s_screen_mapping: &Vec<ScreenMappingMatrix>,
         s_screen_selector: &Vec<ScreenSelector>,
-        mut event: &mut ProtocolEvent,
+        event: &mut ProtocolEvent,
         screen: Screen,
         point: Mouse,
         target_mac: String,
@@ -212,7 +218,7 @@ impl ServerStepServiceApplication {
     }
 
     fn filter_screen_matrix<'a>(
-        s_screen_mapping: &'a Vec<screen_mapping_matrix_pojo::ScreenMappingMatrix>,
+        s_screen_mapping: &'a Vec<ScreenMappingMatrix>,
         mac: &str,
         edge: &str,
     ) -> Option<&'a ScreenMappingMatrix> {
@@ -238,21 +244,21 @@ impl ServerStepServiceApplication {
         (ProtocolUtil::get_mac_addr(select_ip.clone()), select_ip)
     }
 
-    fn get_screen_metrics() -> Vec<ScreenMappingMatrix> {
-        let s_screen_mapping = if let Ok(result) = ScreenMappingMetricRepository::find_all() {
-            result
-        } else {
-            Vec::new()
-        };
-        s_screen_mapping
-    }
+    // fn get_screen_metrics() -> Vec<ScreenMappingMatrix> {
+    //     let s_screen_mapping = if let Ok(result) = ScreenMappingMetricRepository::find_all() {
+    //         result
+    //     } else {
+    //         Vec::new()
+    //     };
+    //     s_screen_mapping
+    // }
 
-    fn get_screen_selector() -> Vec<ScreenSelector> {
-        let s_screen_selector = if let Ok(result) = ScreenSelectorRepository::find_all() {
-            result
-        } else {
-            Vec::new()
-        };
-        s_screen_selector
-    }
+    // fn get_screen_selector() -> Vec<ScreenSelector> {
+    //     let s_screen_selector = if let Ok(result) = ScreenSelectorRepository::find_all() {
+    //         result
+    //     } else {
+    //         Vec::new()
+    //     };
+    //     s_screen_selector
+    // }
 }

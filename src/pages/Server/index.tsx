@@ -9,6 +9,7 @@ import SwitchRightIcon from "@mui/icons-material/SwitchRight";
 import { useEffect, useRef, useState } from "react";
 import LoadingButton from "@mui/lab/LoadingButton";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 
 export interface ScreenMatrixRequest {
   screen_no: number;
@@ -25,6 +26,11 @@ export interface ScreenScale {
   height: number;
 }
 
+export interface Stores {
+  screen_mapping_matrix: ScreenMapping[];
+  screen_selector: ScreenSelector[];
+}
+
 export interface ScreenSelector {
   ip: string;
   mac: string;
@@ -34,17 +40,25 @@ export interface ScreenSelector {
   screen_no: number;
 }
 
+export interface ScreenMapping {
+  mac_source: string;
+  mac_target: string;
+  edge: string;
+}
+
 export const Server = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [_, setScreenSelector] = useState<ScreenSelector[]>([]);
   const [screenMatrix, setScreenMatrix] = useState<ScreenMatrixRequest[]>([]);
+  const [screenMapping, setScreenMapping] = useState<ScreenMapping[]>([]);
   const [screenMatrixCurrent, setScreenMatrixCurrent] = useState<string>("");
   const dragChildRef = useRef<DragChildRef>(null);
 
   const getScreenSelector = async () => {
-    await invoke<ScreenSelector[]>("get_screen_selector").then((result) => {
-      setScreenSelector(result);
-      const mapScreen = mappingMatrix(result);
+    await invoke<Stores>("get_screen_selector").then((result) => {
+      setScreenSelector(result.screen_selector);
+      setScreenMapping(result.screen_mapping_matrix);
+      const mapScreen = mappingMatrix(result.screen_selector);
       setScreenMatrixCurrent(JSON.stringify(mapScreen));
       setScreenMatrix(mapScreen);
     });
@@ -98,6 +112,10 @@ export const Server = () => {
       .catch((error) => console.error(error));
   };
 
+  const startServer = async () => {
+    await invoke("start_server").catch((error) => console.error(error));
+  };
+
   return (
     <div
       style={{
@@ -136,6 +154,13 @@ export const Server = () => {
         />
         <div style={{ marginTop: "10px" }}>
           <ButtonGroup variant="outlined" aria-label="Loading button group">
+            <Button
+              startIcon={<PowerSettingsNewIcon />}
+              disabled={screenMapping.length === 0}
+              onClick={startServer}
+            >
+              Start Server
+            </Button>
             <Button
               startIcon={<RotateLeftIcon />}
               disabled={JSON.stringify(screenMatrix) === screenMatrixCurrent}
