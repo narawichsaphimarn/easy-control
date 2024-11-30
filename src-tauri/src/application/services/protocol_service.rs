@@ -10,8 +10,8 @@ pub struct ProtocolServiceApplication;
 impl ProtocolServiceApplication {
     pub async fn get_machine_detail() -> Result<System, String> {
         let ips: (String, String) = ProtocolUtil::get_addrs();
-        // println!("{:?}", ips);
         let (select_ip, _) = Self::select_ip(ips);
+        // println!("{}", select_ip);
         match SystemServiceApplication::get_system_detail(select_ip) {
             Ok(r) => Ok(r),
             Err(s) => Err(s),
@@ -73,10 +73,10 @@ impl ProtocolServiceApplication {
     }
 
     pub fn select_ip(ips: (String, String)) -> (String, String) {
-        if !ips.0.is_empty() {
-            (ips.1, ips.0)
-        } else {
+        if ips.1.is_empty() {
             (ips.0, ips.1)
+        } else {
+            (ips.1, ips.0)
         }
     }
 

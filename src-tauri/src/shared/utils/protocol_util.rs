@@ -89,6 +89,7 @@ impl ProtocolUtil {
     pub fn ping_ip(ip: &str) -> bool {
         let mut output = Command::new("ping")
             .arg("-c 1")
+            .arg("-t 1")
             .arg(ip)
             .spawn()
             .expect("Failed to execute ping");
@@ -267,11 +268,11 @@ impl ProtocolUtil {
         for i in 2..=255 {
             let ip = format!("{}.{}", base_ip, i);
             // log::debug!("Start ping IP: {}", ip);
-            let _semaphore = semaphore.clone();
-            let jh = task::spawn(async move {
-                let permit = _semaphore.acquire_owned().await.unwrap();
+            // let _semaphore = semaphore.clone();
+            let jh = tokio::task::spawn(async move {
+                // let permit = _semaphore.acquire_owned().await.unwrap();
                 let status = Self::ping_ip(&ip);
-                drop(permit);
+                // drop(permit);
                 if status {
                     Some(ip)
                 } else {
