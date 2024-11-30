@@ -25,4 +25,3 @@ dist-ssr
 src-tauri/share-mouse.conf.json
 src-tauri/setting.conf.json
 src-tauri/setting-mapping-refer.conf.json
-.yarn

@@ -1517,7 +1517,7 @@ __metadata:
     react-router-dom: "npm:^6.27.0"
     typescript: "npm:^5.2.2"
     vite: "npm:^5.3.1"
-    yarn: "npm:2.4.3"
+    yarn: "npm:^2.4.3"
   languageName: unknown
   linkType: soft
 
@@ -2871,7 +2871,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yarn@npm:2.4.3":
+"yarn@npm:^2.4.3":
   version: 2.4.3
   resolution: "yarn@npm:2.4.3"
   bin:
