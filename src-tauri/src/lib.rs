@@ -5,9 +5,12 @@ use crate::shared::stores::setting_json::Settings;
 use crate::shared::stores::setting_mapping_refer_json::SettingMappingRef;
 use crate::shared::stores::store_json::Stores;
 use infrastructure::api::axum_config::AxumInit;
-use presentation::routers::tauri_command::{get_screen_selector, set_machine, start_server};
+use presentation::routers::tauri_command::{
+    get_screen_selector, set_machine, start_server, stop_server,
+};
 use std::{env, sync::Arc};
 use tokio::sync::Mutex;
+use tokio::task::JoinHandle;
 
 pub mod application;
 pub mod domain;
@@ -21,10 +24,12 @@ pub mod shared;
 pub async fn run() {
     Settings::init().await;
     SettingMappingRef::init().await;
+    let store_jhs = Arc::new(Mutex::new(Vec::<JoinHandle<()>>::new));
     let store = Arc::new(Mutex::new(Stores::init().await));
     tokio::task::spawn(AxumInit::new(Arc::clone(&store)).start());
     tauri::Builder::default()
         .manage(Arc::clone(&store))
+        .manage(Arc::clone(&store_jhs))
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             scan_machine,
@@ -34,6 +39,7 @@ pub async fn run() {
             set_machine,
             get_screen_selector,
             start_server,
+            stop_server,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

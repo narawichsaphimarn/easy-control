@@ -53,6 +53,7 @@ export const Server = () => {
   const [screenMapping, setScreenMapping] = useState<ScreenMapping[]>([]);
   const [screenMatrixCurrent, setScreenMatrixCurrent] = useState<string>("");
   const dragChildRef = useRef<DragChildRef>(null);
+  const [isStartServer, setIsStartServer] = useState<boolean>(false);
 
   const getScreenSelector = async () => {
     await invoke<Stores>("get_screen_selector").then((result) => {
@@ -113,7 +114,19 @@ export const Server = () => {
   };
 
   const startServer = async () => {
-    await invoke("start_server").catch((error) => console.error(error));
+    await invoke("start_server")
+      .then(() => {
+        setIsStartServer(true);
+      })
+      .catch((error) => console.error(error));
+  };
+
+  const stopServer = async () => {
+    await invoke("stop_server")
+      .then(() => {
+        setIsStartServer(false);
+      })
+      .catch((error) => console.error(error));
   };
 
   return (
@@ -154,13 +167,23 @@ export const Server = () => {
         />
         <div style={{ marginTop: "10px" }}>
           <ButtonGroup variant="outlined" aria-label="Loading button group">
-            <Button
-              startIcon={<PowerSettingsNewIcon />}
-              disabled={screenMapping.length === 0}
-              onClick={startServer}
-            >
-              Start Server
-            </Button>
+            {isStartServer ? (
+              <Button
+                startIcon={<PowerSettingsNewIcon />}
+                disabled={screenMapping.length === 0}
+                onClick={stopServer}
+              >
+                Stop Server
+              </Button>
+            ) : (
+              <Button
+                startIcon={<PowerSettingsNewIcon />}
+                disabled={screenMapping.length === 0}
+                onClick={startServer}
+              >
+                Start Server
+              </Button>
+            )}
             <Button
               startIcon={<RotateLeftIcon />}
               disabled={JSON.stringify(screenMatrix) === screenMatrixCurrent}

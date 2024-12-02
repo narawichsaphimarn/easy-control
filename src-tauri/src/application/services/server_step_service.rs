@@ -243,22 +243,4 @@ impl ServerStepServiceApplication {
         let (select_ip, _) = ProtocolServiceApplication::select_ip(ips);
         (ProtocolUtil::get_mac_addr(select_ip.clone()), select_ip)
     }
-
-    // fn get_screen_metrics() -> Vec<ScreenMappingMatrix> {
-    //     let s_screen_mapping = if let Ok(result) = ScreenMappingMetricRepository::find_all() {
-    //         result
-    //     } else {
-    //         Vec::new()
-    //     };
-    //     s_screen_mapping
-    // }
-
-    // fn get_screen_selector() -> Vec<ScreenSelector> {
-    //     let s_screen_selector = if let Ok(result) = ScreenSelectorRepository::find_all() {
-    //         result
-    //     } else {
-    //         Vec::new()
-    //     };
-    //     s_screen_selector
-    // }
 }
