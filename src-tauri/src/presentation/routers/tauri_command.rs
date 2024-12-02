@@ -10,7 +10,6 @@ use crate::shared::utils::system_util::SystemUtil;
 use serde_json::json;
 use tauri::State;
 use tokio::sync::Mutex;
-use tokio::task::JoinHandle;
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn scan_machine() -> Result<serde_json::Value, String> {
@@ -83,20 +82,18 @@ pub async fn switch_role() {
 #[tauri::command]
 pub async fn start_server(
     state: State<'_, Arc<Mutex<Stores>>>,
-    jhs: State<'_, Arc<Mutex<Vec<JoinHandle<()>>>>>,
+    is_shutdown: State<'_, Arc<Mutex<bool>>>,
 ) -> Result<(), String> {
-    let server = ServerStepServiceApplication::new(Arc::clone(&state));
-    let jh = tokio::task::spawn(server.run());
-    let mut jhs = jhs.lock().await;
-    jhs.push(jh);
+    let mut status = is_shutdown.lock().await;
+    *status = false;
+    let server = ServerStepServiceApplication::new(Arc::clone(&state), Arc::clone(&is_shutdown));
+    let _ = tokio::task::spawn(server.run());
     Ok(())
 }
 
 #[tauri::command]
-pub async fn stop_server(jhs: State<'_, Arc<Mutex<Vec<JoinHandle<()>>>>>) -> Result<(), String> {
-    let jhs = jhs.lock().await;
-    jhs.iter().for_each(|jh| {
-        jh.abort();
-    });
+pub async fn stop_server(is_shutdown: State<'_, Arc<Mutex<bool>>>) -> Result<(), String> {
+    let mut status = is_shutdown.lock().await;
+    *status = true;
     Ok(())
 }

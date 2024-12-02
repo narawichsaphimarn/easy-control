@@ -116,6 +116,7 @@ export const Server = () => {
   const startServer = async () => {
     await invoke("start_server")
       .then(() => {
+        console.log("Start server");
         setIsStartServer(true);
       })
       .catch((error) => console.error(error));

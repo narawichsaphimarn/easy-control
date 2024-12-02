@@ -10,7 +10,6 @@ use presentation::routers::tauri_command::{
 };
 use std::{env, sync::Arc};
 use tokio::sync::Mutex;
-use tokio::task::JoinHandle;
 
 pub mod application;
 pub mod domain;
@@ -24,12 +23,12 @@ pub mod shared;
 pub async fn run() {
     Settings::init().await;
     SettingMappingRef::init().await;
-    let store_jhs = Arc::new(Mutex::new(Vec::<JoinHandle<()>>::new));
     let store = Arc::new(Mutex::new(Stores::init().await));
+    let status_drop = Arc::new(Mutex::new(false));
     tokio::task::spawn(AxumInit::new(Arc::clone(&store)).start());
     tauri::Builder::default()
         .manage(Arc::clone(&store))
-        .manage(Arc::clone(&store_jhs))
+        .manage(Arc::clone(&status_drop))
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             scan_machine,

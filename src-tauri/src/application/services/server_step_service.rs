@@ -9,9 +9,7 @@ use crate::shared::types::screen_type::Screen;
 use crate::shared::utils::mouse_util::MouseUtil;
 use crate::shared::utils::protocol_util::ProtocolUtil;
 use crate::shared::utils::screen_util::ScreenUtil;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use std::thread;
 use std::time::Duration;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::sync::{watch, Mutex};
@@ -22,18 +20,18 @@ use winapi::shared::windef::HWND__;
 pub struct ServerStepServiceApplication {
     pub step_tx: Sender<StepControl>,
     pub step_rx: Receiver<StepControl>,
-    pub cancel_flag: Arc<AtomicBool>,
     pub store: Arc<Mutex<Stores>>,
+    pub is_shutdown: Arc<Mutex<bool>>,
 }
 
 impl ServerStepServiceApplication {
-    pub fn new(store: Arc<Mutex<Stores>>) -> Arc<Self> {
+    pub fn new(store: Arc<Mutex<Stores>>, is_shutdown: Arc<Mutex<bool>>) -> Arc<Self> {
         let (step_tx, step_rx) = watch::channel(StepControl::ServerLocal);
         Arc::new(ServerStepServiceApplication {
             step_tx,
             step_rx,
-            cancel_flag: Arc::new(AtomicBool::new(false)),
             store,
+            is_shutdown,
         })
     }
 
@@ -43,20 +41,33 @@ impl ServerStepServiceApplication {
         let _ = self.step_tx.send(StepControl::ServerLocal);
         let class = unsafe { Window::create_window_class("SHARE_MOUSE".to_string()) };
         while step_rx.changed().await.is_ok() {
-            tokio::select! {
-                _ = async {}, if self.step_rx.borrow().clone().to_string().eq_ignore_ascii_case
-                ("LOCAL") => {
-                    Window::destroy();
-                    self.local(&mut event).await;
-                }
-                _ = async {}, if self.step_rx.borrow().clone().to_string().eq_ignore_ascii_case
-                ("REMOTE") => {
-                    self.remote(&mut event, class.clone()).await;
-                }
-                _ = async {}, if self.step_rx.borrow().clone().to_string().eq_ignore_ascii_case
-                ("AGAIN") => {
-                    self.again(&mut event).await;
-                }
+            if self
+                .step_rx
+                .borrow()
+                .clone()
+                .to_string()
+                .eq_ignore_ascii_case("LOCAL")
+            {
+                Window::destroy();
+                self.local(&mut event).await;
+            } else if self
+                .step_rx
+                .borrow()
+                .clone()
+                .to_string()
+                .eq_ignore_ascii_case("REMOTE")
+            {
+                self.remote(&mut event, class.clone()).await;
+            } else if self
+                .step_rx
+                .borrow()
+                .clone()
+                .to_string()
+                .eq_ignore_ascii_case("AGAIN")
+            {
+                self.again(&mut event).await;
+            } else {
+                break;
             }
         }
     }
@@ -70,15 +81,21 @@ impl ServerStepServiceApplication {
         event.source_mac = my_mc.clone().to_string();
         event.source_ip = ip.clone().to_string();
         let store = self.store.lock().await;
-        Self::handle_loop_switch_screen(
+        self.handle_loop_switch_screen(
             &mut event,
             screen,
             my_mc,
             store.screen_selector.clone(),
             store.screen_mapping_matrix.clone(),
-        );
+        )
+        .await;
         // log::debug!("End LOCAL | Event: {:?}", event);
-        let _ = self.step_tx.send(StepControl::ServerRemote);
+        let status = self.is_shutdown.lock().await;
+        if *status {
+            let _ = self.step_tx.send(StepControl::STOP);
+        } else {
+            let _ = self.step_tx.send(StepControl::ServerRemote);
+        }
     }
 
     pub async fn remote(&self, mut event: &mut ProtocolEvent, class: Vec<u16>) {
@@ -118,16 +135,14 @@ impl ServerStepServiceApplication {
         let mac = event.target_mac.clone();
         let store = self.store.lock().await;
         #[cfg(target_os = "windows")]
-        unsafe {
-            Window::event(
-                Self::handle_loop_switch_screen_for_event,
-                &mut event,
-                screen,
-                mac,
-                store.screen_mapping_matrix.clone(),
-                store.screen_selector.clone(),
-            );
-        }
+        Window::event(
+            Self::handle_loop_switch_screen_for_event,
+            &mut event,
+            screen,
+            mac,
+            store.screen_mapping_matrix.clone(),
+            store.screen_selector.clone(),
+        );
         // log::debug!("End  REMOTE AGAIN | Event: {:?}", event);
         self.switch_screen(&mut event);
     }
@@ -140,7 +155,8 @@ impl ServerStepServiceApplication {
         }
     }
 
-    fn handle_loop_switch_screen(
+    async fn handle_loop_switch_screen(
+        &self,
         mut event: &mut ProtocolEvent,
         screen: Screen,
         target_mac: String,
@@ -148,6 +164,10 @@ impl ServerStepServiceApplication {
         s_screen_mapping: Vec<ScreenMappingMatrix>,
     ) {
         loop {
+            let status = self.is_shutdown.lock().await;
+            if *status {
+                break;
+            }
             let point = MouseUtil::get_cursor_point();
             if let Ok(result) = Self::check_switch_screen(
                 &s_screen_mapping,
@@ -161,7 +181,7 @@ impl ServerStepServiceApplication {
                     break;
                 }
             }
-            thread::sleep(Duration::from_millis(10));
+            tokio::time::sleep(Duration::from_millis(10)).await;
         }
     }
 
