@@ -173,6 +173,7 @@ export const Server = () => {
                 startIcon={<PowerSettingsNewIcon />}
                 disabled={screenMapping.length === 0}
                 onClick={stopServer}
+                color="error"
               >
                 Stop Server
               </Button>
@@ -181,6 +182,7 @@ export const Server = () => {
                 startIcon={<PowerSettingsNewIcon />}
                 disabled={screenMapping.length === 0}
                 onClick={startServer}
+                color="success"
               >
                 Start Server
               </Button>
