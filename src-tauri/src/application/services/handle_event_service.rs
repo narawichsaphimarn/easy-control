@@ -1,11 +1,10 @@
+use crate::infrastructure::udp::socket_udp::{Event, EventEnum, SocketUdp, StepEnum};
 use crate::shared::types::file_store_type::{ScreenMappingMatrix, ScreenSelector};
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
-use std::cell::RefCell;
 use std::ptr;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use winapi::ctypes::c_int;
 use winapi::shared::minwindef::{BOOL, LPARAM, LRESULT, WPARAM};
 use winapi::shared::windef::{HHOOK, HWND, RECT};
@@ -13,52 +12,31 @@ use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::winuser::{
     CallNextHookEx, ClipCursor, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
     EnumWindows, GetClientRect, GetKeyboardState, GetMessageW, GetSystemMetrics, IsWindow,
-    LoadCursorW, LoadIconW, RegisterClassExW, SetWindowsHookExW, ShowCursor, ShowWindow, ToUnicode,
-    TranslateMessage, UnhookWindowsHookEx, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW,
-    IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG, SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, VK_LMENU,
-    WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED,
-    WS_EX_TOOLWINDOW, WS_POPUP,
+    LoadCursorW, LoadIconW, SetWindowsHookExW, ShowCursor, ShowWindow, ToUnicode, TranslateMessage,
+    CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW, IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG,
+    SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, VK_LMENU, WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP,
+    WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_POPUP,
 };
+// TODO
+/*
+1) Rename struct from Window to HandleEventServiceApplication
+2) Add socket in infrastructure to struct and class type Vec<u16> from create_window_class function
+3) Enhance implement with add &self to function but not create_window_class
+4) POC How to cancel all HOOK
+5) Implement step sent to client in event function
+*/
 
 #[derive(Debug, Clone)]
-pub struct Window {
-    pub off: Arc<Mutex<bool>>,
-    pub hook: Arc<RefCell<Option<HHOOK>>>,
+pub struct HandleEventServiceApplication {
+    pub class: Vec<u16>,
+    pub socket: Arc<SocketUdp>,
 }
 
-impl Window {
-    pub fn new() -> Arc<Self> {
-        Arc::new(Window {
-            off: Arc::new(Mutex::new(true)),
-            hook: Arc::new(RefCell::new(None)),
-        })
-    }
-}
-
-thread_local! {
-    static HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
-}
-
-impl Window {
-    unsafe extern "system" fn keyboard_hook(
-        code: i32,
-        w_param: WPARAM,
-        l_param: LPARAM,
-    ) -> LRESULT {
-        // println!("Keyboard hook triggered! 00000"); // ดูว่าฟังก์ชันทำงานหรือไม่
-        if code >= 0 {
-            // println!("Keyboard hook triggered!"); // ดูว่าฟังก์ชันทำงานหรือไม่
-            let kb_struct = *(l_param as *const KBDLLHOOKSTRUCT);
-            if (w_param as u32) == WM_SYSKEYDOWN {
-                // println!("Key down detected: vkCode = {}", kb_struct.vkCode);
-                if kb_struct.vkCode == (VK_LMENU as u32) && Self::is_alt_pressed() {
-                    // println!("Alt + Tab pressed!");
-                    // Block Alt + Tab by not calling CallNextHookEx
-                    return 1;
-                }
-            }
-        }
-        CallNextHookEx(ptr::null_mut(), code, w_param, l_param)
+impl HandleEventServiceApplication {
+    pub async fn new() -> Self {
+        let class = unsafe { Self::create_window_class("SHARE_MOUSE".to_string()) };
+        let socket = Arc::new(SocketUdp::new().await);
+        HandleEventServiceApplication { class, socket }
     }
 
     fn is_alt_pressed() -> bool {
@@ -70,7 +48,7 @@ impl Window {
         }
     }
 
-    pub fn set_keyboard_hook() -> HHOOK {
+    pub fn set_keyboard_hook(&self) -> HHOOK {
         unsafe {
             let hook = SetWindowsHookExW(
                 WH_KEYBOARD_LL,
@@ -82,45 +60,15 @@ impl Window {
             if hook.is_null() {
                 panic!("Failed to set hook");
             }
-            // HOOK.with(|hook_cell| {
-            //     *hook_cell.borrow_mut() = Some(hook); // เปลี่ยนค่าใน RefCell
-            // });
             hook
         }
     }
 
-    pub fn unset_keyboard_hook(hook: HHOOK) {
-        unsafe {
-            // HOOK.with(|hook_cell| {
-            //     if let Some(hook) = *hook_cell.borrow() {
-            //         UnhookWindowsHookEx(hook as _);
-            //         *hook_cell.borrow_mut() = None; // ล้างค่า
-            //     }
-            // });
-            UnhookWindowsHookEx(hook as _);
-        }
+    pub fn unset_keyboard_hook(&self) {
+        // unsafe {
+        //     UnhookWindowsHookEx(hook as _);
+        // }
     }
-
-    // unsafe extern "system" fn window_proc(
-    //     hwnd: HWND,
-    //     msg: UINT,
-    //     w_param: WPARAM,
-    //     l_param: LPARAM,
-    // ) -> LRESULT {
-    //     match msg {
-    //         WM_DESTROY => {
-    //             ClipCursor(ptr::null());
-    //             ShowCursor(BOOL::from(true)); // แสดงเคอร์เซอร์อีกครั้ง
-    //             PostQuitMessage(0);
-    //             0
-    //         }
-    //         WM_SYSKEYDOWN | WM_DISPLAYCHANGE => {
-    //             println!("Alt + Tab pressed!");
-    //             0
-    //         }
-    //         _ => DefWindowProcW(hwnd, msg, w_param, l_param),
-    //     }
-    // }
 
     fn to_string(value: &str) -> Vec<u16> {
         use std::ffi::OsStr;
@@ -134,7 +82,7 @@ impl Window {
     pub unsafe fn create_window_class(name: String) -> Vec<u16> {
         let class_name = Self::to_string(name.as_str());
         let h_instance = GetModuleHandleW(ptr::null());
-        let wnd_class = WNDCLASSEXW {
+        let _ = WNDCLASSEXW {
             cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
             style: CS_HREDRAW | CS_VREDRAW,
             lpfnWndProc: Some(DefWindowProcW),
@@ -148,18 +96,14 @@ impl Window {
             lpszClassName: class_name.as_ptr(),
             hIconSm: LoadIconW(h_instance, IDI_APPLICATION),
         };
-
-        if RegisterClassExW(&wnd_class) == 0 {
-            Self::destroy();
-        }
         class_name
     }
 
-    pub unsafe fn create_window(class_name: Vec<u16>) -> HWND {
+    pub unsafe fn create_window(&self) {
         let h_instance = GetModuleHandleW(ptr::null());
-        let hwnd = CreateWindowExW(
+        let _ = CreateWindowExW(
             WS_EX_LAYERED | WS_EX_TOOLWINDOW,
-            class_name.as_ptr(),
+            self.class.as_ptr(),
             Self::to_string("SHARE_MOUSE").as_ptr(),
             WS_POPUP,
             CW_USEDEFAULT,
@@ -171,46 +115,61 @@ impl Window {
             h_instance,
             ptr::null_mut(),
         );
-        // let hwnd = CreateWindowExW(
-        //     WS_EX_LAYERED | WS_EX_TOOLWINDOW,
-        //     class_name.as_ptr(),
-        //     Self::to_string("MyClass").as_ptr(),
-        //     WS_OVERLAPPEDWINDOW & !WS_VISIBLE,
-        //     CW_USEDEFAULT,
-        //     CW_USEDEFAULT,
-        //     GetSystemMetrics(SM_CXSCREEN),
-        //     GetSystemMetrics(SM_CYSCREEN),
-        //     ptr::null_mut(),
-        //     ptr::null_mut(),
-        //     GetModuleHandleW(std::ptr::null()),
-        //     ptr::null_mut(),
-        // );
-        hwnd
     }
 
-    pub unsafe fn show_window(hwnd: &HWND) -> BOOL {
-        ShowWindow(*hwnd, SW_SHOW)
+    unsafe extern "system" fn show_window_impl(hwnd: HWND, _: isize) -> i32 {
+        ShowWindow(hwnd, SW_SHOW)
+    }
+
+    pub unsafe fn show_window() -> BOOL {
+        Self::get_hwnd_all_windows(Self::show_window_impl)
     }
 
     pub unsafe fn show_cursor(active: bool) -> c_int {
         ShowCursor(BOOL::from(active))
     }
 
-    pub unsafe fn get_rect(hwnd: &HWND) -> RECT {
+    unsafe fn get_rect(hwnd: &HWND) -> RECT {
         let mut rect: RECT = std::mem::zeroed();
         GetClientRect(*hwnd, &mut rect);
         rect
     }
 
-    pub unsafe fn lock_cursor(rect: &RECT) -> BOOL {
-        ClipCursor(rect)
+    unsafe extern "system" fn lock_cursor_impl(hwnd: HWND, _: isize) -> i32 {
+        let rect = Self::get_rect(&hwnd);
+        ClipCursor(&rect)
+    }
+
+    pub unsafe fn lock_cursor() -> BOOL {
+        Self::get_hwnd_all_windows(Self::lock_cursor_impl)
     }
 
     pub unsafe fn get_message(msg: &mut MSG) -> BOOL {
         GetMessageW(msg, ptr::null_mut(), 0, 0)
     }
 
+    fn get_ip_target(s_screen_selector: Vec<ScreenSelector>, target_mac: String) -> String {
+        let machine_target = s_screen_selector
+            .iter()
+            .find(|item| item.mac == target_mac)
+            .cloned();
+        match machine_target {
+            Some(machine) => machine.ip,
+            None => String::new(),
+        }
+    }
+
+    fn map_event_to_string(event: EventEnum, step: StepEnum, message: String) -> String {
+        let event = Event {
+            event,
+            step,
+            message,
+        };
+        serde_json::to_string(&event).unwrap()
+    }
+
     pub fn event(
+        &self,
         f: fn(
             Mouse,
             &mut ProtocolEvent,
@@ -227,6 +186,7 @@ impl Window {
     ) {
         unsafe {
             let mut msg: MSG = std::mem::zeroed();
+            let ip = Self::get_ip_target(s_screen_selector.clone(), target_mac.clone());
             while Self::get_message(&mut msg) > 0 {
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);
@@ -246,6 +206,23 @@ impl Window {
                             s_screen_selector.clone(),
                         ) {
                             break;
+                        } else {
+                            let socket = Arc::clone(&self.socket);
+                            let ip_arc = Arc::new(ip.clone());
+                            tokio::task::spawn(async move {
+                                let event = Self::map_event_to_string(
+                                    EventEnum::Mouse,
+                                    StepEnum::MouseMove,
+                                    serde_json::to_string(
+                                        &(Mouse {
+                                            x: msg.pt.x as f64,
+                                            y: msg.pt.y as f64,
+                                        }),
+                                    )
+                                    .unwrap(),
+                                );
+                                socket.send(ip_arc.as_str(), event).await;
+                            });
                         }
                     }
                     // WM_LBUTTONDOWN => {
@@ -335,13 +312,32 @@ impl Window {
         1 // TRUE
     }
 
-    fn destroy_all_windows() {
-        unsafe {
-            EnumWindows(Some(Self::destroy_window_callback), 0);
-        }
+    fn get_hwnd_all_windows(f: unsafe extern "system" fn(HWND, isize) -> i32) -> BOOL {
+        unsafe { EnumWindows(Some(f), 0) }
     }
 
-    pub fn destroy() {
-        Self::destroy_all_windows();
+    pub fn destroy(&self) {
+        Self::get_hwnd_all_windows(Self::destroy_window_callback);
+    }
+
+    unsafe extern "system" fn keyboard_hook(
+        code: i32,
+        w_param: WPARAM,
+        l_param: LPARAM,
+    ) -> LRESULT {
+        // println!("Keyboard hook triggered! 00000"); // ดูว่าฟังก์ชันทำงานหรือไม่
+        if code >= 0 {
+            // println!("Keyboard hook triggered!"); // ดูว่าฟังก์ชันทำงานหรือไม่
+            let kb_struct = *(l_param as *const KBDLLHOOKSTRUCT);
+            if (w_param as u32) == WM_SYSKEYDOWN {
+                // println!("Key down detected: vkCode = {}", kb_struct.vkCode);
+                if kb_struct.vkCode == (VK_LMENU as u32) && Self::is_alt_pressed() {
+                    // println!("Alt + Tab pressed!");
+                    // Block Alt + Tab by not calling CallNextHookEx
+                    return 1;
+                }
+            }
+        }
+        CallNextHookEx(ptr::null_mut(), code, w_param, l_param)
     }
 }

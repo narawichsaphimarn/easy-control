@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::services::client_step_service::ClientStepServiceApplication;
 use crate::application::services::protocol_service::ProtocolServiceApplication;
 use crate::application::services::screen_service::ScreenServiceApplication;
 use crate::application::services::server_step_service::ServerStepServiceApplication;
@@ -86,7 +87,8 @@ pub async fn start_server(
 ) -> Result<(), String> {
     let mut status = is_shutdown.lock().await;
     *status = false;
-    let server = ServerStepServiceApplication::new(Arc::clone(&state), Arc::clone(&is_shutdown));
+    let server =
+        ServerStepServiceApplication::new(Arc::clone(&state), Arc::clone(&is_shutdown)).await;
     let _ = tokio::task::spawn(server.run());
     Ok(())
 }
@@ -95,5 +97,14 @@ pub async fn start_server(
 pub async fn stop_server(is_shutdown: State<'_, Arc<Mutex<bool>>>) -> Result<(), String> {
     let mut status = is_shutdown.lock().await;
     *status = true;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn start_client(is_shutdown: State<'_, Arc<Mutex<bool>>>) -> Result<(), String> {
+    let mut status = is_shutdown.lock().await;
+    *status = false;
+    let client = ClientStepServiceApplication::new(Arc::clone(&is_shutdown)).await;
+    let _ = tokio::task::spawn(client.run());
     Ok(())
 }

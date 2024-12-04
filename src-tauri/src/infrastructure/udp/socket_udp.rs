@@ -5,15 +5,20 @@ use tokio::sync::{Mutex, MutexGuard};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
-    pub event: EventStep,
-    pub step: String,
+    pub event: EventEnum,
+    pub step: StepEnum,
     pub message: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum EventStep {
+pub enum EventEnum {
     Mouse,
     Keyboard,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum StepEnum {
+    MouseMove,
 }
 
 #[derive(Debug, Clone)]
@@ -55,5 +60,15 @@ impl SocketUdp {
 
     pub async fn get_socket(&self) -> MutexGuard<'_, UdpSocket> {
         self.socket.lock().await
+    }
+
+    pub fn destroy(&self) {
+        // Explicitly drop the Arc
+        if let Ok(socket) = Arc::try_unwrap(self.socket.clone()) {
+            println!("Dropping the UdpSocket...");
+            let _ = socket.into_inner(); // This drops the UdpSocket
+        } else {
+            println!("Cannot drop: other references exist!");
+        }
     }
 }

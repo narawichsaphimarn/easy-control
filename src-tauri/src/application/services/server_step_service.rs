@@ -1,6 +1,6 @@
+use crate::application::services::handle_event_service::HandleEventServiceApplication;
 use crate::application::services::protocol_service::ProtocolServiceApplication;
 use crate::shared::constants::step_control_constant::StepControl;
-use crate::shared::lib::lib_event::Window;
 use crate::shared::stores::store_json::Stores;
 use crate::shared::types::file_store_type::{ScreenMappingMatrix, ScreenSelector};
 use crate::shared::types::mouse_type::Mouse;
@@ -13,8 +13,13 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::sync::{watch, Mutex};
-#[cfg(target_os = "windows")]
-use winapi::shared::windef::HWND__;
+
+// TODO
+/*
+1) Remove socket from struct because move to handle event
+2) Add handle event to struct and new class
+3) Enhance event from call direct to call with struct
+*/
 
 #[derive(Debug, Clone)]
 pub struct ServerStepServiceApplication {
@@ -22,16 +27,19 @@ pub struct ServerStepServiceApplication {
     pub step_rx: Receiver<StepControl>,
     pub store: Arc<Mutex<Stores>>,
     pub is_shutdown: Arc<Mutex<bool>>,
+    pub event: HandleEventServiceApplication,
 }
 
 impl ServerStepServiceApplication {
-    pub fn new(store: Arc<Mutex<Stores>>, is_shutdown: Arc<Mutex<bool>>) -> Arc<Self> {
+    pub async fn new(store: Arc<Mutex<Stores>>, is_shutdown: Arc<Mutex<bool>>) -> Arc<Self> {
         let (step_tx, step_rx) = watch::channel(StepControl::ServerLocal);
+        let event = HandleEventServiceApplication::new().await;
         Arc::new(ServerStepServiceApplication {
             step_tx,
             step_rx,
             store,
             is_shutdown,
+            event,
         })
     }
 
@@ -39,7 +47,6 @@ impl ServerStepServiceApplication {
         let mut step_rx = self.step_rx.clone();
         let mut event = ProtocolEvent::new();
         let _ = self.step_tx.send(StepControl::ServerLocal);
-        let class = unsafe { Window::create_window_class("SHARE_MOUSE".to_string()) };
         while step_rx.changed().await.is_ok() {
             if self
                 .step_rx
@@ -48,7 +55,7 @@ impl ServerStepServiceApplication {
                 .to_string()
                 .eq_ignore_ascii_case("LOCAL")
             {
-                Window::destroy();
+                self.event.destroy();
                 self.local(&mut event).await;
             } else if self
                 .step_rx
@@ -57,7 +64,7 @@ impl ServerStepServiceApplication {
                 .to_string()
                 .eq_ignore_ascii_case("REMOTE")
             {
-                self.remote(&mut event, class.clone()).await;
+                self.remote(&mut event).await;
             } else if self
                 .step_rx
                 .borrow()
@@ -98,7 +105,7 @@ impl ServerStepServiceApplication {
         }
     }
 
-    pub async fn remote(&self, mut event: &mut ProtocolEvent, class: Vec<u16>) {
+    pub async fn remote(&self, mut event: &mut ProtocolEvent) {
         // log::debug!("Start REMOTE");
         let screen = Screen {
             width: event.source_width,
@@ -108,12 +115,11 @@ impl ServerStepServiceApplication {
         let store = self.store.lock().await;
         #[cfg(target_os = "windows")]
         unsafe {
-            let raw_hwnd: *mut HWND__ = Window::create_window(class.clone());
-            Window::show_window(&raw_hwnd);
-            let rect = Window::get_rect(&raw_hwnd);
-            Window::show_cursor(false);
-            Window::lock_cursor(&rect);
-            Window::event(
+            self.event.create_window();
+            HandleEventServiceApplication::show_window();
+            HandleEventServiceApplication::show_cursor(false);
+            HandleEventServiceApplication::lock_cursor();
+            self.event.event(
                 Self::handle_loop_switch_screen_for_event,
                 &mut event,
                 screen,
@@ -135,7 +141,7 @@ impl ServerStepServiceApplication {
         let mac = event.target_mac.clone();
         let store = self.store.lock().await;
         #[cfg(target_os = "windows")]
-        Window::event(
+        self.event.event(
             Self::handle_loop_switch_screen_for_event,
             &mut event,
             screen,

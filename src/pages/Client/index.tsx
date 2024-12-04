@@ -34,7 +34,7 @@ export const Client = () => {
   };
 
   const startClient = async () => {
-    await invoke("start_server")
+    await invoke("start_client")
       .then(() => {
         console.log("Start server");
         setIsStartClient(true);

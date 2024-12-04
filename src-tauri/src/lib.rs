@@ -6,7 +6,7 @@ use crate::shared::stores::setting_mapping_refer_json::SettingMappingRef;
 use crate::shared::stores::store_json::Stores;
 use infrastructure::api::axum_config::AxumInit;
 use presentation::routers::tauri_command::{
-    get_screen_selector, set_machine, start_server, stop_server,
+    get_screen_selector, set_machine, start_client, start_server, stop_server,
 };
 use std::{env, sync::Arc};
 use tokio::sync::Mutex;
@@ -39,6 +39,7 @@ pub async fn run() {
             get_screen_selector,
             start_server,
             stop_server,
+            start_client,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
