@@ -23,52 +23,41 @@ pub enum StepEnum {
 
 #[derive(Debug, Clone)]
 pub struct SocketUdp {
-    pub socket: Arc<Mutex<UdpSocket>>,
+    pub socket: Arc<UdpSocket>,
 }
 
 impl SocketUdp {
     pub async fn new() -> Self {
         SocketUdp {
-            socket: Arc::new(Mutex::new(
+            socket: Arc::new(
                 UdpSocket::bind("0.0.0.0:9876")
                     .await
                     .expect("Failed to bind socket"),
-            )),
+            ),
         }
     }
 
     pub async fn send(&self, addr: &str, msg: String) {
-        match self.socket.try_lock() {
-            Ok(data) => match data
-                .send_to(msg.as_bytes(), addr.to_owned() + ":9876")
-                .await
-            {
-                Ok(_) => {}
-                Err(e) => panic!("Failed to send: {:?}", e),
-            },
-            Err(e) => panic!("Failed to lock update: {:?}", e),
+        match self
+            .socket
+            .send_to(msg.as_bytes(), addr.to_owned() + ":8080")
+            .await
+        {
+            Ok(_) => {}
+            Err(e) => panic!("Failed to send: {:?}", e),
         }
     }
 
     pub async fn receive(&self) -> Event {
         let mut buf = [0; 1024];
-        let (len, _) = self.socket.lock().await.recv_from(&mut buf).await.unwrap();
+        let (len, _) = self.socket.recv_from(&mut buf).await.unwrap();
         let json_str = String::from_utf8(buf[..len].to_vec()).unwrap();
         let data: Event = serde_json::from_str(&json_str).unwrap();
         data
     }
 
-    pub async fn get_socket(&self) -> MutexGuard<'_, UdpSocket> {
-        self.socket.lock().await
-    }
-
     pub fn destroy(&self) {
         // Explicitly drop the Arc
-        if let Ok(socket) = Arc::try_unwrap(self.socket.clone()) {
-            println!("Dropping the UdpSocket...");
-            let _ = socket.into_inner(); // This drops the UdpSocket
-        } else {
-            println!("Cannot drop: other references exist!");
-        }
+        std::mem::drop(self.socket.clone());
     }
 }

@@ -7,15 +7,15 @@ use std::ptr;
 use std::sync::Arc;
 use winapi::ctypes::c_int;
 use winapi::shared::minwindef::{BOOL, LPARAM, LRESULT, WPARAM};
-use winapi::shared::windef::{HHOOK, HWND, RECT};
+use winapi::shared::windef::{HHOOK, HWND, POINT, RECT};
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::winuser::{
     CallNextHookEx, ClipCursor, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
     EnumWindows, GetClientRect, GetKeyboardState, GetMessageW, GetSystemMetrics, IsWindow,
-    LoadCursorW, LoadIconW, SetWindowsHookExW, ShowCursor, ShowWindow, ToUnicode, TranslateMessage,
-    CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW, IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG,
-    SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, VK_LMENU, WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP,
-    WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_POPUP,
+    LoadCursorW, LoadIconW, RegisterClassExW, SetWindowsHookExW, ShowCursor, ShowWindow, ToUnicode,
+    TranslateMessage, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW, IDI_APPLICATION,
+    KBDLLHOOKSTRUCT, MSG, SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, VK_LMENU, WH_KEYBOARD_LL, WM_KEYDOWN,
+    WM_KEYUP, WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_POPUP,
 };
 // TODO
 /*
@@ -70,7 +70,7 @@ impl HandleEventServiceApplication {
         // }
     }
 
-    fn to_string(value: &str) -> Vec<u16> {
+    fn convert_to_string(value: &str) -> Vec<u16> {
         use std::ffi::OsStr;
         use std::os::windows::ffi::OsStrExt;
         OsStr::new(value)
@@ -80,10 +80,10 @@ impl HandleEventServiceApplication {
     }
 
     pub unsafe fn create_window_class(name: String) -> Vec<u16> {
-        let class_name = Self::to_string(name.as_str());
+        let class_name = Self::convert_to_string(name.as_str());
         let h_instance = GetModuleHandleW(ptr::null());
-        let _ = WNDCLASSEXW {
-            cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
+        let wnd_class = WNDCLASSEXW {
+            cbSize: size_of::<WNDCLASSEXW>() as u32,
             style: CS_HREDRAW | CS_VREDRAW,
             lpfnWndProc: Some(DefWindowProcW),
             cbClsExtra: 0,
@@ -91,20 +91,23 @@ impl HandleEventServiceApplication {
             hInstance: h_instance,
             hIcon: LoadIconW(h_instance, IDI_APPLICATION),
             hCursor: LoadCursorW(h_instance, IDC_ARROW),
-            hbrBackground: std::ptr::null_mut(),
+            hbrBackground: ptr::null_mut(),
             lpszMenuName: ptr::null(),
             lpszClassName: class_name.as_ptr(),
             hIconSm: LoadIconW(h_instance, IDI_APPLICATION),
         };
+        if RegisterClassExW(&wnd_class) == 0 {
+            Self::destroy_all();
+        }
         class_name
     }
 
     pub unsafe fn create_window(&self) {
         let h_instance = GetModuleHandleW(ptr::null());
-        let _ = CreateWindowExW(
+        let hwmd = CreateWindowExW(
             WS_EX_LAYERED | WS_EX_TOOLWINDOW,
-            self.class.as_ptr(),
-            Self::to_string("SHARE_MOUSE").as_ptr(),
+            self.class.clone().as_ptr(),
+            Self::convert_to_string("SHARE_MOUSE").as_ptr(),
             WS_POPUP,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
@@ -115,14 +118,13 @@ impl HandleEventServiceApplication {
             h_instance,
             ptr::null_mut(),
         );
+        Self::show_window(&hwmd);
+        Self::lock_cursor(&hwmd);
+        Self::show_cursor(false);
     }
 
-    unsafe extern "system" fn show_window_impl(hwnd: HWND, _: isize) -> i32 {
-        ShowWindow(hwnd, SW_SHOW)
-    }
-
-    pub unsafe fn show_window() -> BOOL {
-        Self::get_hwnd_all_windows(Self::show_window_impl)
+    pub unsafe fn show_window(hwnd: &HWND) -> BOOL {
+        ShowWindow(*hwnd, SW_SHOW)
     }
 
     pub unsafe fn show_cursor(active: bool) -> c_int {
@@ -135,13 +137,9 @@ impl HandleEventServiceApplication {
         rect
     }
 
-    unsafe extern "system" fn lock_cursor_impl(hwnd: HWND, _: isize) -> i32 {
+    pub unsafe fn lock_cursor(hwnd: &HWND) -> BOOL {
         let rect = Self::get_rect(&hwnd);
         ClipCursor(&rect)
-    }
-
-    pub unsafe fn lock_cursor() -> BOOL {
-        Self::get_hwnd_all_windows(Self::lock_cursor_impl)
     }
 
     pub unsafe fn get_message(msg: &mut MSG) -> BOOL {
@@ -166,6 +164,25 @@ impl HandleEventServiceApplication {
             message,
         };
         serde_json::to_string(&event).unwrap()
+    }
+
+    pub fn send_mouse_move(&self, pt: POINT, ip: String) {
+        let socket = Arc::clone(&self.socket);
+        let ip_arc = Arc::new(ip.clone());
+        tokio::task::spawn(async move {
+            let event = Self::map_event_to_string(
+                EventEnum::Mouse,
+                StepEnum::MouseMove,
+                serde_json::to_string(
+                    &(Mouse {
+                        x: pt.x as f64,
+                        y: pt.y as f64,
+                    }),
+                )
+                .unwrap(),
+            );
+            socket.send(ip_arc.as_str(), event).await;
+        });
     }
 
     pub fn event(
@@ -207,22 +224,7 @@ impl HandleEventServiceApplication {
                         ) {
                             break;
                         } else {
-                            let socket = Arc::clone(&self.socket);
-                            let ip_arc = Arc::new(ip.clone());
-                            tokio::task::spawn(async move {
-                                let event = Self::map_event_to_string(
-                                    EventEnum::Mouse,
-                                    StepEnum::MouseMove,
-                                    serde_json::to_string(
-                                        &(Mouse {
-                                            x: msg.pt.x as f64,
-                                            y: msg.pt.y as f64,
-                                        }),
-                                    )
-                                    .unwrap(),
-                                );
-                                socket.send(ip_arc.as_str(), event).await;
-                            });
+                            self.send_mouse_move(msg.pt, ip.clone());
                         }
                     }
                     // WM_LBUTTONDOWN => {
@@ -318,6 +320,13 @@ impl HandleEventServiceApplication {
 
     pub fn destroy(&self) {
         Self::get_hwnd_all_windows(Self::destroy_window_callback);
+    }
+    fn destroy_all() {
+        Self::get_hwnd_all_windows(Self::destroy_window_callback);
+    }
+
+    pub fn stop_potocol(&self) {
+        self.socket.destroy();
     }
 
     unsafe extern "system" fn keyboard_hook(

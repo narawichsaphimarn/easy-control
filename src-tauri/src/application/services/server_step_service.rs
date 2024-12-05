@@ -74,6 +74,7 @@ impl ServerStepServiceApplication {
             {
                 self.again(&mut event).await;
             } else {
+                self.event.stop_potocol();
                 break;
             }
         }
@@ -116,9 +117,6 @@ impl ServerStepServiceApplication {
         #[cfg(target_os = "windows")]
         unsafe {
             self.event.create_window();
-            HandleEventServiceApplication::show_window();
-            HandleEventServiceApplication::show_cursor(false);
-            HandleEventServiceApplication::lock_cursor();
             self.event.event(
                 Self::handle_loop_switch_screen_for_event,
                 &mut event,
@@ -129,7 +127,7 @@ impl ServerStepServiceApplication {
             );
         }
         // log::debug!("End REMOTE | Event: {:?}", event);
-        self.switch_screen(&mut event);
+        self.switch_screen(&mut event).await;
     }
 
     pub async fn again(&self, mut event: &mut ProtocolEvent) {
@@ -150,14 +148,19 @@ impl ServerStepServiceApplication {
             store.screen_selector.clone(),
         );
         // log::debug!("End  REMOTE AGAIN | Event: {:?}", event);
-        self.switch_screen(&mut event);
+        self.switch_screen(&mut event).await;
     }
 
-    fn switch_screen(&self, event: &mut ProtocolEvent) {
-        if event.source_mac.eq_ignore_ascii_case(&event.target_mac) {
-            let _ = self.step_tx.send(StepControl::ServerLocal);
+    async fn switch_screen(&self, event: &mut ProtocolEvent) {
+        let status = self.is_shutdown.lock().await;
+        if *status {
+            let _ = self.step_tx.send(StepControl::STOP);
         } else {
-            let _ = self.step_tx.send(StepControl::ServerRemoteAgain);
+            if event.source_mac.eq_ignore_ascii_case(&event.target_mac) {
+                let _ = self.step_tx.send(StepControl::ServerLocal);
+            } else {
+                let _ = self.step_tx.send(StepControl::ServerRemoteAgain);
+            }
         }
     }
 
