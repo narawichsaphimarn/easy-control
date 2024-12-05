@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::net::UdpSocket;
-use tokio::sync::{Mutex, MutexGuard};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
@@ -40,7 +39,7 @@ impl SocketUdp {
     pub async fn send(&self, addr: &str, msg: String) {
         match self
             .socket
-            .send_to(msg.as_bytes(), addr.to_owned() + ":8080")
+            .send_to(msg.as_bytes(), addr.to_owned() + ":9876")
             .await
         {
             Ok(_) => {}
@@ -57,7 +56,6 @@ impl SocketUdp {
     }
 
     pub fn destroy(&self) {
-        // Explicitly drop the Arc
-        std::mem::drop(self.socket.clone());
+        drop(self.socket.clone());
     }
 }

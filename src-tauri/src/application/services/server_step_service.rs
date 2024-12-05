@@ -145,15 +145,10 @@ impl ServerStepServiceApplication {
     }
 
     async fn switch_screen(&self, event: &mut ProtocolEvent) {
-        let status = self.is_shutdown.lock().await;
-        if *status {
-            let _ = self.step_tx.send(StepControl::STOP);
+        if event.source_mac.eq_ignore_ascii_case(&event.target_mac) {
+            let _ = self.step_tx.send(StepControl::ServerLocal);
         } else {
-            if event.source_mac.eq_ignore_ascii_case(&event.target_mac) {
-                let _ = self.step_tx.send(StepControl::ServerLocal);
-            } else {
-                let _ = self.step_tx.send(StepControl::ServerRemoteAgain);
-            }
+            let _ = self.step_tx.send(StepControl::ServerRemoteAgain);
         }
     }
 

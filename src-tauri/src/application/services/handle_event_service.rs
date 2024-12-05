@@ -3,6 +3,7 @@ use crate::shared::types::file_store_type::{ScreenMappingMatrix, ScreenSelector}
 use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
+use crate::shared::utils::screen_util::ScreenUtil;
 use std::ptr;
 use std::sync::Arc;
 use winapi::ctypes::c_int;
@@ -142,14 +143,17 @@ impl HandleEventServiceApplication {
         GetMessageW(msg, ptr::null_mut(), 0, 0)
     }
 
-    fn get_ip_target(s_screen_selector: Vec<ScreenSelector>, target_mac: String) -> String {
+    fn get_machince_target(
+        s_screen_selector: Vec<ScreenSelector>,
+        target_mac: String,
+    ) -> ScreenSelector {
         let machine_target = s_screen_selector
             .iter()
             .find(|item| item.mac == target_mac)
             .cloned();
         match machine_target {
-            Some(machine) => machine.ip,
-            None => String::new(),
+            Some(machine) => machine,
+            None => panic!("Machine not match"),
         }
     }
 
@@ -162,22 +166,29 @@ impl HandleEventServiceApplication {
         serde_json::to_string(&event).unwrap()
     }
 
-    pub fn send_mouse_move(&self, pt: POINT, ip: String) {
+    pub fn send_mouse_move(&self, pt: POINT, target: ScreenSelector, source: Screen) {
         let socket = Arc::clone(&self.socket);
-        let ip_arc = Arc::new(ip.clone());
         tokio::task::spawn(async move {
+            let (x, y) = ScreenUtil::scale_coordinates(
+                pt.x,
+                pt.y,
+                source.width,
+                source.height,
+                target.width.parse().unwrap(),
+                target.height.parse().unwrap(),
+            );
             let event = Self::map_event_to_string(
                 EventEnum::Mouse,
                 StepEnum::MouseMove,
                 serde_json::to_string(
                     &(Mouse {
-                        x: pt.x as f64,
-                        y: pt.y as f64,
+                        x: x as f64,
+                        y: y as f64,
                     }),
                 )
                 .unwrap(),
             );
-            socket.send(ip_arc.as_str(), event).await;
+            socket.send(&target.ip.as_str(), event).await;
         });
     }
 
@@ -199,14 +210,14 @@ impl HandleEventServiceApplication {
     ) {
         unsafe {
             let mut msg: MSG = std::mem::zeroed();
-            let ip = Self::get_ip_target(s_screen_selector.clone(), target_mac.clone());
+            let screen_select =
+                Self::get_machince_target(s_screen_selector.clone(), target_mac.clone());
             while Self::get_message(&mut msg) > 0 {
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);
                 // println!("Mouse msg: {}", msg.message);
                 match msg.message {
                     WM_MOUSEMOVE => {
-                        // println!("Mouse moved to position: ({}, {})", msg.pt.x, msg.pt.y);
                         if f(
                             Mouse {
                                 x: msg.pt.x as f64,
@@ -220,7 +231,7 @@ impl HandleEventServiceApplication {
                         ) {
                             break;
                         } else {
-                            self.send_mouse_move(msg.pt, ip.clone());
+                            self.send_mouse_move(msg.pt, screen_select.clone(), screen);
                         }
                     }
                     // WM_LBUTTONDOWN => {
