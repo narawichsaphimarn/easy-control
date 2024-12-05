@@ -13,12 +13,12 @@ use winapi::shared::windef::{HHOOK, HWND, POINT, RECT};
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::winuser::{
     CallNextHookEx, ClipCursor, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
-    EnumWindows, GetClientRect, GetKeyboardState, GetMessageW, GetSystemMetrics, IsWindow,
-    LoadCursorW, LoadIconW, RegisterClassExW, SetWindowsHookExW, ShowCursor, ShowWindow, ToUnicode,
-    TranslateMessage, UnhookWindowsHookEx, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW,
-    IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG, SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, VK_LMENU,
-    WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED,
-    WS_EX_TOOLWINDOW, WS_POPUP,
+    EnumWindows, GetAsyncKeyState, GetClientRect, GetKeyboardState, GetMessageW, GetSystemMetrics,
+    IsWindow, LoadCursorW, LoadIconW, RegisterClassExW, SetWindowsHookExW, ShowCursor, ShowWindow,
+    ToUnicode, TranslateMessage, UnhookWindowsHookEx, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT,
+    IDC_ARROW, IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG, SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, VK_LMENU,
+    VK_TAB, WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW,
+    WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_POPUP,
 };
 // TODO
 /*
@@ -320,18 +320,20 @@ impl HandleEventServiceApplication {
         w_param: WPARAM,
         l_param: LPARAM,
     ) -> LRESULT {
-        // println!("Keyboard hook triggered! 00000"); // ดูว่าฟังก์ชันทำงานหรือไม่
         if code >= 0 {
-            // println!("Keyboard hook triggered!"); // ดูว่าฟังก์ชันทำงานหรือไม่
-            let kb_struct = *(l_param as *const KBDLLHOOKSTRUCT);
-            if (w_param as u32) == WM_SYSKEYDOWN {
-                // println!("Key down detected: vkCode = {}", kb_struct.vkCode);
-                if kb_struct.vkCode == (VK_LMENU as u32) && Self::is_alt_pressed() {
-                    // println!("Alt + Tab pressed!");
-                    // Block Alt + Tab by not calling CallNextHookEx
+            println!("Start hook");
+            if w_param as u32 == WM_KEYDOWN || w_param as u32 == WM_SYSKEYDOWN {
+                let kb_struct = *(l_param as *const KBDLLHOOKSTRUCT);
+                if kb_struct.vkCode == VK_TAB as u32
+                    && (GetAsyncKeyState(VK_LMENU) & 0x8000u16 as i16) != 0
+                {
+                    // ตรวจจับ Alt + Tab
+                    println!("Alt + Tab pressed!");
                     return 1;
                 }
             }
+        } else {
+            return 1;
         }
         CallNextHookEx(ptr::null_mut(), code, w_param, l_param)
     }
