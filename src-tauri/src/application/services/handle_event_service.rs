@@ -358,7 +358,8 @@ impl HandleEventServiceApplication {
                 panic!("Failed to set hook");
             }
             HOOK.with(|hook_cell| {
-                *hook_cell.borrow_mut() = Some(hook); // เปลี่ยนค่าใน RefCell
+                let mut _hook_mut = *hook_cell.borrow_mut();
+                _hook_mut = Some(hook);
             });
         }
     }
@@ -366,12 +367,12 @@ impl HandleEventServiceApplication {
     pub fn unset_keyboard_hook() {
         unsafe {
             HOOK.with(|hook_cell| {
-                if let Some(hook) = *hook_cell.borrow() {
+                let mut _hook_mut = *hook_cell.borrow_mut();
+                if let Some(hook) = _hook_mut {
                     UnhookWindowsHookEx(hook as _);
-                    *hook_cell.borrow_mut() = None;
                 }
+                _hook_mut = None;
             });
-            // UnhookWindowsHookEx(hook as _);
         }
     }
 }
