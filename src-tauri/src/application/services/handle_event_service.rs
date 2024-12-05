@@ -4,6 +4,7 @@ use crate::shared::types::mouse_type::Mouse;
 use crate::shared::types::protocol_type::ProtocolEvent;
 use crate::shared::types::screen_type::Screen;
 use crate::shared::utils::screen_util::ScreenUtil;
+use std::cell::RefCell;
 use std::ptr;
 use std::sync::Arc;
 use winapi::ctypes::c_int;
@@ -14,14 +15,19 @@ use winapi::um::winuser::{
     CallNextHookEx, ClipCursor, CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW,
     EnumWindows, GetClientRect, GetKeyboardState, GetMessageW, GetSystemMetrics, IsWindow,
     LoadCursorW, LoadIconW, RegisterClassExW, SetWindowsHookExW, ShowCursor, ShowWindow, ToUnicode,
-    TranslateMessage, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW, IDI_APPLICATION,
-    KBDLLHOOKSTRUCT, MSG, SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, VK_LMENU, WH_KEYBOARD_LL, WM_KEYDOWN,
-    WM_KEYUP, WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_POPUP,
+    TranslateMessage, UnhookWindowsHookEx, CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW,
+    IDI_APPLICATION, KBDLLHOOKSTRUCT, MSG, SM_CXSCREEN, SM_CYSCREEN, SW_SHOW, VK_LMENU,
+    WH_KEYBOARD_LL, WM_KEYDOWN, WM_KEYUP, WM_MOUSEMOVE, WM_SYSKEYDOWN, WNDCLASSEXW, WS_EX_LAYERED,
+    WS_EX_TOOLWINDOW, WS_POPUP,
 };
 // TODO
 /*
 4) POC How to cancel all HOOK
 */
+
+thread_local! {
+    static HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
+}
 
 #[derive(Debug, Clone)]
 pub struct HandleEventServiceApplication {
@@ -34,37 +40,6 @@ impl HandleEventServiceApplication {
         let class = unsafe { Self::create_window_class("SHARE_MOUSE".to_string()) };
         let socket = Arc::new(SocketUdp::new().await);
         HandleEventServiceApplication { class, socket }
-    }
-
-    fn is_alt_pressed() -> bool {
-        unsafe {
-            let alt_state = winapi::um::winuser::GetAsyncKeyState(VK_LMENU as i32) as i32;
-            let is_pressed = (alt_state & 0x0009) != 0;
-            println!("Alt state: {}, is_pressed: {}", alt_state, is_pressed);
-            is_pressed
-        }
-    }
-
-    pub fn set_keyboard_hook(&self) -> HHOOK {
-        unsafe {
-            let hook = SetWindowsHookExW(
-                WH_KEYBOARD_LL,
-                Some(Self::keyboard_hook),
-                GetModuleHandleW(ptr::null()),
-                0,
-            );
-
-            if hook.is_null() {
-                panic!("Failed to set hook");
-            }
-            hook
-        }
-    }
-
-    pub fn unset_keyboard_hook(&self) {
-        // unsafe {
-        //     UnhookWindowsHookEx(hook as _);
-        // }
     }
 
     fn convert_to_string(value: &str) -> Vec<u16> {
@@ -118,6 +93,7 @@ impl HandleEventServiceApplication {
         Self::show_window(&hwmd);
         Self::lock_cursor(&hwmd);
         Self::show_cursor(false);
+        Self::set_keyboard_hook();
     }
 
     pub unsafe fn show_window(hwnd: &HWND) -> BOOL {
@@ -229,6 +205,9 @@ impl HandleEventServiceApplication {
                             s_screen_mapping.clone(),
                             s_screen_selector.clone(),
                         ) {
+                            if event.source_mac.eq_ignore_ascii_case(&event.target_mac) {
+                                Self::unset_keyboard_hook();
+                            }
                             break;
                         } else {
                             self.send_mouse_move(msg.pt, screen_select.clone(), screen);
@@ -355,5 +334,44 @@ impl HandleEventServiceApplication {
             }
         }
         CallNextHookEx(ptr::null_mut(), code, w_param, l_param)
+    }
+
+    fn is_alt_pressed() -> bool {
+        unsafe {
+            let alt_state = winapi::um::winuser::GetAsyncKeyState(VK_LMENU as i32) as i32;
+            let is_pressed = (alt_state & 0x0009) != 0;
+            println!("Alt state: {}, is_pressed: {}", alt_state, is_pressed);
+            is_pressed
+        }
+    }
+
+    pub fn set_keyboard_hook() {
+        unsafe {
+            let hook = SetWindowsHookExW(
+                WH_KEYBOARD_LL,
+                Some(Self::keyboard_hook),
+                GetModuleHandleW(ptr::null()),
+                0,
+            );
+
+            if hook.is_null() {
+                panic!("Failed to set hook");
+            }
+            HOOK.with(|hook_cell| {
+                *hook_cell.borrow_mut() = Some(hook); // เปลี่ยนค่าใน RefCell
+            });
+        }
+    }
+
+    pub fn unset_keyboard_hook() {
+        unsafe {
+            HOOK.with(|hook_cell| {
+                if let Some(hook) = *hook_cell.borrow() {
+                    UnhookWindowsHookEx(hook as _);
+                    *hook_cell.borrow_mut() = None;
+                }
+            });
+            // UnhookWindowsHookEx(hook as _);
+        }
     }
 }

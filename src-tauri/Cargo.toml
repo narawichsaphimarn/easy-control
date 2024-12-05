@@ -35,8 +35,8 @@ pnet = "0.35.0"
 telnet = "0.2.2"
 
 [package.metadata.scripts]
-run = "cargo run"
-check = "cargo check"
-build = "cargo build"
-release = "cargo build --release"
+run = "cargo tauri dev"
+build = "cargo tauri build"
 reformat = "cargo fmt"
+check = "cargo check"
+release = "cargo build --release"

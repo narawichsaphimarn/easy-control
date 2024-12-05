@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.cursor-control-app.app",
   "build": {
-    "beforeDevCommand": "yarn dev",
+    "beforeDevCommand": "yarn install && yarn dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "yarn build",
+    "beforeBuildCommand": "yarn install && yarn build",
     "frontendDist": "../dist"
   },
   "app": {
