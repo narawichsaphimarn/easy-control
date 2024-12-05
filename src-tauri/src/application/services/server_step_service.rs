@@ -14,13 +14,6 @@ use std::time::Duration;
 use tokio::sync::watch::{Receiver, Sender};
 use tokio::sync::{watch, Mutex};
 
-// TODO
-/*
-1) Remove socket from struct because move to handle event
-2) Add handle event to struct and new class
-3) Enhance event from call direct to call with struct
-*/
-
 #[derive(Debug, Clone)]
 pub struct ServerStepServiceApplication {
     pub step_tx: Sender<StepControl>,

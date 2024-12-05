@@ -19,11 +19,7 @@ use winapi::um::winuser::{
 };
 // TODO
 /*
-1) Rename struct from Window to HandleEventServiceApplication
-2) Add socket in infrastructure to struct and class type Vec<u16> from create_window_class function
-3) Enhance implement with add &self to function but not create_window_class
 4) POC How to cancel all HOOK
-5) Implement step sent to client in event function
 */
 
 #[derive(Debug, Clone)]
