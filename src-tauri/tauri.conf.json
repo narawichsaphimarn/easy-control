@@ -1,12 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "cursor-control-app",
+  "productName": "easy-control-app",
   "version": "0.1.0",
-  "identifier": "com.cursor-control-app.app",
+  "identifier": "com.easy-control-app.app",
   "build": {
-    "beforeDevCommand": "yarn install && yarn dev",
+    "beforeDevCommand": "npm install && npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "yarn install && yarn build",
+    "beforeBuildCommand": "npm install && npm run build",
     "frontendDist": "../dist"
   },
   "app": {

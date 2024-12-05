@@ -1,5 +1,10 @@
 {
-  "name": "cursor-control-app",
+  "author": {
+    "email": "NarawichSaphimarn@gmail.com",
+    "name": "Narawich Saphimarn",
+    "url": "https://github.com/narawichsaphimarn"
+  },
+  "name": "easy-control-app",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -22,10 +27,10 @@
     "@tauri-apps/plugin-shell": "^2",
     "@types/react-reconciler": "^0.28.8",
     "cursor-control-app": "file:",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "7.0.2",
-    "yarn": "^2.4.3"
+    "easy-control-app": "file:",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-router-dom": "7.0.2"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
@@ -35,8 +40,5 @@
     "typescript": "^5.2.2",
     "vite": "6.0.3"
   },
-  "packageManager": "yarn@4.5.3",
-  "workspaces": [
-    "packages/*"
-  ]
+  "packageManager": "yarn@4.5.3"
 }
